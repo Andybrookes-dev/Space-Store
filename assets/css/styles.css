@@ -1,0 +1,46 @@
+/* styles.css */
+body {
+    margin: 0;
+    font-family: "Orbitron", sans-serif;
+    background: linear-gradient(to bottom, #0f0c29, #302b63, #24243e);
+    color: #fff;
+}
+
+.hero {
+    text-align: center;
+    padding: 100px 20px;
+    background: radial-gradient(circle at center, #ff00cc, #333399);
+    box-shadow: 0 0 20px #ff00cc;
+}
+
+button {
+    background: #00f0ff;
+    border: none;
+    padding: 10px 20px;
+    color: #000;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 0 10px #00f0ff;
+}
+
+.product-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 40px;
+    gap: 20px;
+}
+
+.product-card {
+    background: #1a1a2e;
+    border: 2px solid #00f0ff;
+    padding: 20px;
+    width: 200px;
+    text-align: center;
+    box-shadow: 0 0 15px #00f0ff;
+    transition: transform 0.3s;
+}
+
+.product-card:hover {
+    transform: scale(1.05);
+}
