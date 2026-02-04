@@ -239,3 +239,17 @@ nav.tron-navbar .form-control
     margin-bottom: 0 !important;
     padding-bottom: 0 !important;
 }
+/* Logo icon in navbar */
+.logo-icon {
+    height: 150px;              /* adjust size */
+    width: auto;
+    filter: drop-shadow(0 0 6px #00eaff);
+    transition: 0.3s ease;
+}
+
+.logo-icon:hover {
+    filter: drop-shadow(0 0 12px #00eaff);
+}
+body {
+    background: #0a0f1f;
+}
