@@ -70,23 +70,10 @@ nav.tron-navbar .dropdown-item:hover {
 /* Search bar */
 nav.tron-navbar .form-control
 
-body { border: 5px solid red; }
+/* body { border: 5px solid red; } */
 
 /* === HERO SECTION === */
 
-.hero {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 100px 20px;
-    background: radial-gradient(circle at center, #ff00cc 0%, #333399 100%);
-    box-shadow: 0 0 30px #ff00cc;
-    color: #fff;
-    position: relative;
-    overflow: hidden;
-}
 
 /* Glowing grid overlay (optional Tron effect) */
 .hero::before {
@@ -165,4 +152,90 @@ body { border: 5px solid red; }
     transform: translate(-50%, -50%);
     z-index: 0;
     filter: brightness(0.45) saturate(1.4);
+}
+
+.hero {
+    position: relative;
+    height: 80vh;
+    min-height: 500px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;   /* Push content to bottom */
+    align-items: center;
+    padding-bottom: 40px;        /* Space above bottom edge */
+    overflow: hidden;
+    text-align: center;
+    color: #fff;
+}
+.tron-divider {
+    width: 100%;
+    height: 6px;
+    background: #00eaff;
+    box-shadow:
+        0 0 10px #00eaff,
+        0 0 20px #00eaff,
+        0 0 40px #00eaff;
+}
+
+/* === TRON FOOTER === */
+
+.tron-footer {
+    background: #0a0f1f;
+    border-top: 2px solid #00eaff;
+    box-shadow: 0 0 15px rgba(0, 234, 255, 0.4);
+    padding: 30px 0;
+    text-align: center;
+    margin-top: 60px;
+}
+
+.tron-footer p {
+    color: #b8eaff;
+    margin-bottom: 15px;
+    font-size: 1rem;
+    letter-spacing: 1px;
+}
+
+.social-links {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.social-icon {
+    font-size: 1.8rem;
+    color: #00eaff;
+    transition: 0.3s ease;
+    text-shadow: 0 0 8px #00eaff;
+}
+
+.social-icon:hover {
+    color: #ffffff;
+    text-shadow: 0 0 12px #00eaff, 0 0 20px #00eaff;
+    transform: scale(1.15);
+}
+
+/* Tron border under the carousel */
+#carouselExampleCaptions::after {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 4px;
+    background: #00eaff;
+    box-shadow:
+        0 0 10px #00eaff,
+        0 0 20px #00eaff,
+        0 0 40px #00eaff;
+    margin-top: 0; /* removes any accidental spacing */
+}
+#carouselExampleCaptions {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+#shop {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
+}
+.product-grid {
+    margin-bottom: 0 !important;
+    padding-bottom: 0 !important;
 }
