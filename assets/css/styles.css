@@ -1,23 +1,43 @@
-/* === TRON / Sci‑Fi Navbar === */
+/* =========================================================
+   GLOBAL FONTS & BASE STYLES
+   ========================================================= */
+
+body {
+    background: #0a0f1f;
+    font-family: 'Exo 2', sans-serif;
+    line-height: 1.6;
+    font-weight: 300;
+    color: #b8eaff;
+}
+
+h1, h2, h3, h4, h5, h6,
+.section-title,
+.navbar-brand,
+.brand-text,
+nav.tron-navbar .nav-link {
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 2px;
+    color: #00eaff;
+}
+
+/* =========================================================
+   TRON NAVBAR
+   ========================================================= */
 
 nav.tron-navbar {
-    background: #0a0f1f; /* deep sci‑fi blue/black */
-    border-bottom: 2px solid #00eaff; /* neon cyan line */
+    background: #0a0f1f;
+    border-bottom: 2px solid #00eaff;
     box-shadow: 0 0 15px rgba(0, 234, 255, 0.4);
     padding: 0.75rem 1.5rem;
 }
 
-/* Brand text */
 nav.tron-navbar .navbar-brand {
-    color: #00eaff !important;
     font-weight: 700;
     font-size: 1.4rem;
-    letter-spacing: 2px;
     text-transform: uppercase;
     text-shadow: 0 0 8px #00eaff;
 }
 
-/* Nav links */
 nav.tron-navbar .nav-link {
     color: #b8eaff !important;
     font-weight: 500;
@@ -49,33 +69,49 @@ nav.tron-navbar .nav-link:hover::after {
     width: 100%;
 }
 
-/* Dropdown menu */
-nav.tron-navbar .dropdown-menu {
-    background: #0a0f1f;
-    border: 1px solid #00eaff;
-    box-shadow: 0 0 12px rgba(0, 234, 255, 0.4);
-}
-
-nav.tron-navbar .dropdown-item {
-    color: #b8eaff;
+/* Logo */
+.logo-icon {
+    height: 50px;
+    width: auto;
+    filter: drop-shadow(0 0 6px #00eaff);
     transition: 0.3s ease;
 }
 
-nav.tron-navbar .dropdown-item:hover {
-    background: rgba(0, 234, 255, 0.1);
-    color: #00eaff;
-    text-shadow: 0 0 6px #00eaff;
+.logo-icon:hover {
+    filter: drop-shadow(0 0 12px #00eaff);
 }
 
-/* Search bar */
+/* =========================================================
+   HERO SECTION
+   ========================================================= */
 
+.hero {
+    position: relative;
+    height: 80vh;
+    min-height: 500px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 40px;
+    overflow: hidden;
+    text-align: center;
+    color: #fff;
+}
 
-/* body { border: 5px solid red; } */
+.hero-video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transform: translate(-50%, -50%);
+    z-index: 0;
+    filter: brightness(0.45) saturate(1.4);
+}
 
-/* === HERO SECTION === */
-
-
-/* Glowing grid overlay (optional Tron effect) */
+/* Tron grid overlay */
 .hero::before {
     content: "";
     position: absolute;
@@ -83,30 +119,20 @@ nav.tron-navbar .dropdown-item:hover {
     left: 0;
     width: 100%;
     height: 100%;
-    background-image: linear-gradient(transparent 95%, rgba(255, 255, 255, 0.05)),
-                      linear-gradient(90deg, transparent 95%, rgba(255, 255, 255, 0.05));
+    background-image: 
+        linear-gradient(transparent 95%, rgba(255, 255, 255, 0.05)),
+        linear-gradient(90deg, transparent 95%, rgba(255, 255, 255, 0.05));
     background-size: 40px 40px;
     pointer-events: none;
     z-index: 0;
 }
 
-/* Hero text */
-.hero h1 {
-    font-size: 3rem;
-    font-weight: 700;
-    letter-spacing: 2px;
-    text-shadow: 0 0 10px #00f0ff;
-    z-index: 1;
-}
-
 .hero p {
     font-size: 1.2rem;
     margin-bottom: 30px;
-    color: #b8eaff;
     z-index: 1;
 }
 
-/* Hero button */
 .hero button {
     background: #00f0ff;
     border: none;
@@ -126,47 +152,16 @@ nav.tron-navbar .dropdown-item:hover {
     box-shadow: 0 0 20px #00f0ff;
 }
 
-/* Responsive adjustments */
+/* Mobile hero adjustments */
 @media (max-width: 768px) {
-    .hero h1 {
-        font-size: 2.2rem;
-    }
-
-    .hero p {
-        font-size: 1rem;
-    }
-
-    .hero button {
-        font-size: 0.9rem;
-        padding: 10px 20px;
-    }
+    .hero p { font-size: 1rem; }
+    .hero button { font-size: 0.9rem; padding: 10px 20px; }
 }
 
-.hero-video {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;   /* This is the magic */
-    transform: translate(-50%, -50%);
-    z-index: 0;
-    filter: brightness(0.45) saturate(1.4);
-}
+/* =========================================================
+   TRON DIVIDER
+   ========================================================= */
 
-.hero {
-    position: relative;
-    height: 80vh;
-    min-height: 500px;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;   /* Push content to bottom */
-    align-items: center;
-    padding-bottom: 40px;        /* Space above bottom edge */
-    overflow: hidden;
-    text-align: center;
-    color: #fff;
-}
 .tron-divider {
     width: 100%;
     height: 6px;
@@ -177,7 +172,56 @@ nav.tron-navbar .dropdown-item:hover {
         0 0 40px #00eaff;
 }
 
-/* === TRON FOOTER === */
+/* =========================================================
+   WOMEN'S COLLECTION GRID
+   ========================================================= */
+
+.women-section {
+    padding: 60px 20px;
+    background: #0a0f1f;
+}
+
+.section-title {
+    text-align: center;
+    font-size: 2.8rem;
+    margin-bottom: 40px;
+    text-shadow: 0 0 12px #00eaff;
+}
+
+/* Responsive grid */
+.women-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+}
+
+@media (max-width: 992px) {
+    .women-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    .women-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.women-grid img {
+    width: 100%;
+    border-radius: 6px;
+    box-shadow: 0 0 12px #00eaff55;
+    transition: 0.3s ease;
+}
+
+.women-grid img:hover {
+    transform: scale(1.03);
+    box-shadow: 0 0 20px #00eaff;
+}
+
+/* =========================================================
+   FOOTER
+   ========================================================= */
 
 .tron-footer {
     background: #0a0f1f;
@@ -214,89 +258,9 @@ nav.tron-navbar .dropdown-item:hover {
     transform: scale(1.15);
 }
 
-/* Tron border under the carousel */
-#carouselExampleCaptions::after {
-    content: "";
-    display: block;
-    width: 100%;
-    height: 4px;
-    background: #00eaff;
-    box-shadow:
-        0 0 10px #00eaff,
-        0 0 20px #00eaff,
-        0 0 40px #00eaff;
-    margin-top: 0; /* removes any accidental spacing */
-}
-#carouselExampleCaptions {
-    margin-bottom: 0 !important;
-    padding-bottom: 0 !important;
-}
-#shop {
-    margin-bottom: 0 !important;
-    padding-bottom: 0 !important;
-}
-.product-grid {
-    margin-bottom: 0 !important;
-    padding-bottom: 0 !important;
-}
-/* Logo icon in navbar */
-.logo-icon {
-    height: 50px;              /* adjust size */
-    width: auto;
-    filter: drop-shadow(0 0 6px #00eaff);
-    transition: 0.3s ease;
-}
 
-.logo-icon:hover {
-    filter: drop-shadow(0 0 12px #00eaff);
-}
-body {
-    background: #0a0f1f;
-}
 
-.women-section {
-    padding: 60px 20px;
-    background: #0a0f1f;
-}
 
-.section-title {
-    text-align: center;
-    color: #00eaff;
-    font-size: 2.8rem;
-    margin-bottom: 40px;
-    text-shadow: 0 0 12px #00eaff;
-    letter-spacing: 2px;
-}
 
-/* RESPONSIVE GRID */
-.women-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 25px;
-}
 
-/* Tablet */
-@media (max-width: 992px) {
-    .women-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
 
-/* Mobile */
-@media (max-width: 576px) {
-    .women-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-.women-grid img {
-    width: 100%;
-    border-radius: 6px;
-    box-shadow: 0 0 12px #00eaff55;
-    transition: 0.3s ease;
-}
-
-.women-grid img:hover {
-    transform: scale(1.03);
-    box-shadow: 0 0 20px #00eaff;
-}
