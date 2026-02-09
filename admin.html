@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Dashboard – Galactic Threads</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+
+<body>
+
+<script>
+// Admin protection
+if (!localStorage.getItem("gt_admin")) {
+    window.location.href = "index.html";
+}
+</script>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg tron-navbar">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="index.html">
+            <img src="assets/images/logo.png" class="logo-icon me-2">
+            <span class="brand-text">Galactic Threads</span>
+        </a>
+    </div>
+</nav>
+
+<div class="tron-divider"></div>
+
+<section class="women-section">
+    <h2 class="section-title">Admin Dashboard</h2>
+
+    <div class="container" style="max-width: 600px;">
+
+        <div class="list-group tron-list">
+
+            <a href="admin-products.html" class="list-group-item tron-list-item">
+                <h4>Manage Products</h4>
+                <p>Add, edit, delete, and view all products.</p>
+            </a>
+
+            <a href="admin-categories.html" class="list-group-item tron-list-item">
+                <h4>Manage Categories</h4>
+                <p>Add new categories and manage existing ones.</p>
+            </a>
+
+            <a href="admin-orders.html" class="list-group-item tron-list-item disabled">
+                <h4>Orders (Coming Soon)</h4>
+                <p>View and manage customer orders.</p>
+            </a>
+
+        </div>
+
+    </div>
+</section>
+
+<footer class="tron-footer">
+    <div class="footer-content">
+        <p>© 2026 Galactic Threads</p>
+    </div>
+</footer>
+
+</body>
+</html>
