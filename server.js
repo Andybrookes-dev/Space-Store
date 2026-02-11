@@ -8,6 +8,9 @@ const path = require("path");
 const app = express();
 const db = new sqlite3.Database("./db.sqlite");
 
+console.log("DB path:", require("path").resolve("./db.sqlite"));
+
+
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
@@ -122,8 +125,11 @@ app.post("/api/register", async (req, res) => {
       [email, hash, isAdmin ? 1 : 0],
       function (err) {
         if (err) {
-          return res.status(400).json({ message: "User already exists" });
-        }
+         console.log("REGISTER ERROR:", err);   // <-- THIS LINE IS ESSENTIAL
+         return res.status(400).json({ message: "User already exists" });
+}
+
+        
         res.json({ message: "Registered successfully" });
       }
     );
