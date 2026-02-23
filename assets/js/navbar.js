@@ -14,12 +14,22 @@ fetch("/api/session")
         greetingEl.textContent = `Hello, ${data.firstName}`;
       }
 
-      // Logged-in navbar items
+      // ⭐ ADMIN PANEL LINK FIRST ⭐
+      if (data.isAdmin) {
+        navList.innerHTML += `
+          <li class="nav-item auth-item">
+            <a class="nav-link" href="admin.html">Admin Panel</a>
+          </li>
+        `;
+      }
+
+      // Logout button SECOND
       navList.innerHTML += `
         <li class="nav-item auth-item">
           <a class="nav-link" id="logoutBtn" style="cursor:pointer;">Logout</a>
         </li>
       `;
+
     } else {
       // Logged-out navbar items
       navList.innerHTML += `

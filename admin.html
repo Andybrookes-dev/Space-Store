@@ -16,12 +16,20 @@
 
 <body>
 
+<body>
+
 <script>
-// Admin protection
-if (!localStorage.getItem("gt_admin")) {
-    window.location.href = "index.html";
-}
+// Admin protection using real session
+fetch("/api/session")
+  .then(res => res.json())
+  .then(data => {
+    if (!data.loggedIn || !data.isAdmin) {
+      window.location.href = "index.html";
+    }
+  });
 </script>
+
+
 
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg tron-navbar">

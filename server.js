@@ -176,6 +176,7 @@ app.post("/api/login", (req, res) => {
     req.session.user = {
       id: user.id,
       firstName: user.firstName,
+      email: user.email,
       isAdmin: user.isAdmin
     };
 
@@ -193,6 +194,7 @@ app.get("/api/session", (req, res) => {
     return res.json({
       loggedIn: true,
       firstName: req.session.user.firstName,
+      email: req.session.user.email,
       isAdmin: req.session.user.isAdmin
     });
   }
