@@ -212,6 +212,7 @@ app.post("/api/logout", (req, res) => {
 // CATEGORIES
 // =========================
 
+// Admin: get all categories
 app.get("/api/admin/categories", (req, res) => {
   db.all("SELECT * FROM categories", [], (err, rows) => {
     if (err) return res.status(500).json({ message: "Database error" });
@@ -219,6 +220,15 @@ app.get("/api/admin/categories", (req, res) => {
   });
 });
 
+// Public: get all categories
+app.get("/api/categories", (req, res) => {
+  db.all("SELECT * FROM categories", [], (err, rows) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+    res.json(rows);
+  });
+});
+
+// Admin: add category
 app.post("/api/admin/category", (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ message: "Category name required" });
@@ -233,6 +243,7 @@ app.post("/api/admin/category", (req, res) => {
 // PRODUCTS
 // =========================
 
+// Admin: get ALL products (active + inactive)
 app.get("/api/admin/products", (req, res) => {
   const query = `
     SELECT products.*, categories.name AS category
@@ -245,6 +256,7 @@ app.get("/api/admin/products", (req, res) => {
   });
 });
 
+// Public: get ACTIVE products only
 app.get("/api/products", (req, res) => {
   const query = `
     SELECT products.*, categories.name AS category
@@ -258,6 +270,21 @@ app.get("/api/products", (req, res) => {
   });
 });
 
+// Admin: get single product by ID
+app.get("/api/product/:id", (req, res) => {
+  const query = `
+    SELECT products.*, categories.name AS category
+    FROM products
+    LEFT JOIN categories ON products.category_id = categories.id
+    WHERE products.id = ?
+  `;
+  db.get(query, [req.params.id], (err, row) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+    res.json(row);
+  });
+});
+
+// Admin: add product
 app.post("/api/admin/product", (req, res) => {
   const { name, price, description, image, category_id } = req.body;
 
@@ -276,6 +303,7 @@ app.post("/api/admin/product", (req, res) => {
   );
 });
 
+// Admin: update product
 app.put("/api/admin/product/:id", (req, res) => {
   const { id } = req.params;
   const { name, price, description, image, category_id, active } = req.body;
@@ -292,6 +320,7 @@ app.put("/api/admin/product/:id", (req, res) => {
   );
 });
 
+// Admin: soft delete (deactivate)
 app.delete("/api/admin/product/:id", (req, res) => {
   const { id } = req.params;
 
@@ -300,6 +329,8 @@ app.delete("/api/admin/product/:id", (req, res) => {
     res.json({ message: "Product deactivated" });
   });
 });
+
+
 
 // =========================
 // CART

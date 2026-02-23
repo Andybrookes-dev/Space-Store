@@ -16,11 +16,15 @@
 
 <body>
 
+<!-- Admin Protection -->
 <script>
-// Admin protection
-if (!localStorage.getItem("gt_admin")) {
-    window.location.href = "index.html";
-}
+fetch("/api/session")
+  .then(res => res.json())
+  .then(data => {
+    if (!data.loggedIn || !data.isAdmin) {
+      window.location.href = "index.html";
+    }
+  });
 </script>
 
 <!-- NAVBAR -->
@@ -72,49 +76,8 @@ if (!localStorage.getItem("gt_admin")) {
     </div>
 </footer>
 
-<script>
-// Load categories
-async function loadCategories() {
-    const res = await fetch("/api/admin/categories");
-    const categories = await res.json();
-
-    const table = document.getElementById("categoryTable");
-    table.innerHTML = "";
-
-    categories.forEach(cat => {
-        table.innerHTML += `
-            <tr>
-                <td>${cat.id}</td>
-                <td>${cat.name}</td>
-            </tr>
-        `;
-    });
-}
-
-// Add new category
-document.getElementById("addCategoryForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const name = document.getElementById("categoryName").value.trim();
-    if (!name) return alert("Category name cannot be empty.");
-
-    const res = await fetch("/api/admin/category", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name })
-    });
-
-    const data = await res.json();
-    alert(data.message);
-
-    if (res.ok) {
-        document.getElementById("categoryName").value = "";
-        loadCategories();
-    }
-});
-
-loadCategories();
-</script>
+<!-- Load external JS -->
+<script src="assets/js/admin-categories.js"></script>
 
 </body>
 </html>

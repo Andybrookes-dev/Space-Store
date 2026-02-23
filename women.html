@@ -19,49 +19,44 @@
 </head>
 
 <body>
-  <nav class="navbar navbar-expand-lg tron-navbar">
-  <div class="container-fluid">
+ <!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg tron-navbar">
+    <div class="container-fluid">
 
-    <!-- Brand links to homepage -->
-    <a class="navbar-brand d-flex align-items-center" href="index.html">
-      <img src="assets/images/logo.png" alt="Galactic Threads Logo" class="logo-icon me-2">
-      <span class="brand-text">Galactic Threads</span>
-    </a>
-    <span id="greeting" class="text-light ms-3"></span>
+        <a class="navbar-brand d-flex align-items-center" href="index.html">
+            <img src="assets/images/logo.png" class="logo-icon me-2">
+            <span class="brand-text">Galactic Threads</span>
+        </a>
 
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-      <span class="navbar-toggler-icon"></span>
-    </button>
+        <span id="greeting" class="text-light ms-3"></span>
 
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-      <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent">
+            <span class="navbar-toggler-icon"></span>
+        </button>
 
-        <li class="nav-item">
-          <a class="nav-link" href="Men.html">Men</a>
-        </li>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
 
-        <li class="nav-item">
-          <a class="nav-link" href="women.html">Women</a>
-        </li>
+            <!-- ⭐ CATEGORY-AWARE SEARCH BAR ⭐ -->
+            <form id="searchForm" class="d-flex me-3" role="search">
+                <select id="searchCategory" class="form-select me-2">
+                    <option value="all">All</option>
+                    <option value="men">Men</option>
+                    <option value="women">Women</option>
+                </select>
 
-        <li class="nav-item">
-          <a class="nav-link" href="alien.html">Alien</a>
-        </li>
-        <li class="nav-item">
-  <a class="nav-link" href="basket.html">Basket</a>
-</li>
+                <input id="searchInput" class="form-control me-2" type="search"
+                       placeholder="Search products...">
 
+                <button class="btn tron-btn" type="submit">Search</button>
+            </form>
 
-      </ul>
-
-      <form class="d-flex ms-3">
-        <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search">
-        <button class="btn btn-outline-success" type="submit">Search</button>
-      </form>
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0"></ul>
+        </div>
 
     </div>
-  </div>
 </nav>
+
 
 <section id="women" class="women-section">
     <h2 class="section-title">Women's Collection</h2>

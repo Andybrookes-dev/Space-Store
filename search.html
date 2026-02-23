@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Men – Galactic Threads</title>
+    <title>Search Results – Galactic Threads</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -11,7 +11,7 @@
 
 <body>
 
-<!-- NAVBAR -->
+<!-- UNIVERSAL NAVBAR -->
 <nav class="navbar navbar-expand-lg tron-navbar">
     <div class="container-fluid">
 
@@ -28,20 +28,39 @@
         </button>
 
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+            <!-- CATEGORY-AWARE SEARCH BAR -->
+            <form id="searchForm" class="d-flex me-3" role="search">
+                <select id="searchCategory" class="form-select me-2">
+                    <option value="all">All</option>
+                    <option value="men">Men</option>
+                    <option value="women">Women</option>
+                </select>
+
+                <input id="searchInput" class="form-control me-2" type="search"
+                       placeholder="Search products...">
+
+                <button class="btn tron-btn" type="submit">Search</button>
+            </form>
+
             <ul class="navbar-nav ms-auto mb-2 mb-lg-0"></ul>
         </div>
 
     </div>
 </nav>
 
-<!-- MEN'S COLLECTION -->
+<div class="tron-divider"></div>
+
 <section class="women-section">
-    <h2 class="section-title">Men's Collection</h2>
+    <h2 class="section-title" id="searchTitle">Search Results</h2>
 
     <div id="productGrid" class="product-grid"></div>
+
+    <p id="noResults" class="text-center text-light mt-4" style="display:none;">
+        No products match your search.
+    </p>
 </section>
 
-<!-- FOOTER -->
 <footer class="tron-footer">
     <div class="footer-content">
         <p>© 2026 Galactic Threads</p>
@@ -50,7 +69,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="assets/js/navbar.js"></script>
-<script src="assets/js/men.js"></script>
+<script src="assets/js/search.js"></script>
 
 </body>
 </html>

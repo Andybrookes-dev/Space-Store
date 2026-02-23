@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin – Manage Products</title>
+    <title>Admin – Products</title>
 
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
@@ -16,20 +16,54 @@
 
 <body>
 
+<!-- ⭐ REAL ADMIN PROTECTION ⭐ -->
 <script>
-// Admin protection
-if (!localStorage.getItem("gt_admin")) {
-    window.location.href = "index.html";
+async function checkAdminAccess() {
+    const res = await fetch("/api/session");
+    const session = await res.json();
+
+    if (!session.loggedIn || !session.isAdmin) {
+        window.location.href = "index.html";
+    }
 }
+checkAdminAccess();
 </script>
 
-<!-- NAVBAR -->
+<!-- ⭐ UNIVERSAL NAVBAR ⭐ -->
 <nav class="navbar navbar-expand-lg tron-navbar">
     <div class="container-fluid">
+
         <a class="navbar-brand d-flex align-items-center" href="admin.html">
             <img src="assets/images/logo.png" class="logo-icon me-2">
             <span class="brand-text">Admin Panel</span>
         </a>
+
+        <span id="greeting" class="text-light ms-3"></span>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+
+            <!-- CATEGORY-AWARE SEARCH BAR -->
+            <form id="searchForm" class="d-flex me-3" role="search">
+                <select id="searchCategory" class="form-select me-2">
+                    <option value="all">All</option>
+                    <option value="men">Men</option>
+                    <option value="women">Women</option>
+                </select>
+
+                <input id="searchInput" class="form-control me-2" type="search"
+                       placeholder="Search products...">
+
+                <button class="btn tron-btn" type="submit">Search</button>
+            </form>
+
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0"></ul>
+        </div>
+
     </div>
 </nav>
 
@@ -40,31 +74,31 @@ if (!localStorage.getItem("gt_admin")) {
 
     <div class="container">
 
-        <div class="d-flex justify-content-end mb-3">
-            <a href="admin-add-product.html" class="checkout-btn">+ Add New Product</a>
+        <!-- ⭐ FILTER BAR ⭐ -->
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <label class="form-label">Search</label>
+                <input type="text" id="searchInput" class="form-control" placeholder="Search products...">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Category</label>
+                <select id="categoryFilter" class="form-select">
+                    <option value="">All Categories</option>
+                </select>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label">Active</label>
+                <select id="activeFilter" class="form-select">
+                    <option value="">All</option>
+                    <option value="true">Active</option>
+                    <option value="false">Inactive</option>
+                </select>
+            </div>
         </div>
 
-        <div class="row mb-4">
-    <div class="col-md-4">
-        <input type="text" id="searchInput" class="form-control" placeholder="Search products...">
-    </div>
-
-    <div class="col-md-3">
-        <select id="categoryFilter" class="form-select">
-            <option value="">All Categories</option>
-        </select>
-    </div>
-
-    <div class="col-md-3">
-        <select id="activeFilter" class="form-select">
-            <option value="">Active + Inactive</option>
-            <option value="1">Active Only</option>
-            <option value="0">Inactive Only</option>
-        </select>
-    </div>
-</div>
-
-
+        <!-- ⭐ PRODUCT TABLE ⭐ -->
         <table class="table table-dark table-striped table-bordered align-middle">
             <thead>
                 <tr>
@@ -73,11 +107,15 @@ if (!localStorage.getItem("gt_admin")) {
                     <th>Price (£)</th>
                     <th>Category</th>
                     <th>Active</th>
-                    <th style="width: 160px;">Actions</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody id="productTable"></tbody>
         </table>
+
+        <div class="text-center mt-3">
+            <a href="admin-add-product.html" class="tron-btn">+ Add New Product</a>
+        </div>
 
     </div>
 </section>
@@ -88,97 +126,10 @@ if (!localStorage.getItem("gt_admin")) {
     </div>
 </footer>
 
-<script>
-let allProducts = [];
-
-// Load all products
-async function loadProducts() {
-    const res = await fetch("/api/admin/products");
-    allProducts = await res.json();
-    renderProducts(allProducts);
-}
-
-// Render products into table
-function renderProducts(products) {
-    const table = document.getElementById("productTable");
-    table.innerHTML = "";
-
-    products.forEach(p => {
-        table.innerHTML += `
-            <tr>
-                <td>${p.id}</td>
-                <td>${p.name}</td>
-                <td>£${p.price.toFixed(2)}</td>
-                <td>${p.category || "Uncategorised"}</td>
-                <td>${p.active ? "Yes" : "No"}</td>
-                <td>
-                    <a href="admin-edit-product.html?id=${p.id}" class="btn btn-sm btn-primary">Edit</a>
-                    <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})">Delete</button>
-                </td>
-            </tr>
-        `;
-    });
-}
-
-// Load categories into filter dropdown
-async function loadCategoryFilter() {
-    const res = await fetch("/api/admin/categories");
-    const categories = await res.json();
-
-    const filter = document.getElementById("categoryFilter");
-
-    categories.forEach(cat => {
-        filter.innerHTML += `<option value="${cat.name}">${cat.name}</option>`;
-    });
-}
-
-// Apply search + filters
-function applyFilters() {
-    const search = document.getElementById("searchInput").value.toLowerCase();
-    const category = document.getElementById("categoryFilter").value;
-    const active = document.getElementById("activeFilter").value;
-
-    let filtered = allProducts.filter(p => {
-        const matchesSearch =
-            p.name.toLowerCase().includes(search) ||
-            (p.category && p.category.toLowerCase().includes(search)) ||
-            p.price.toString().includes(search);
-
-        const matchesCategory =
-            category === "" || p.category === category;
-
-        const matchesActive =
-            active === "" || p.active.toString() === active;
-
-        return matchesSearch && matchesCategory && matchesActive;
-    });
-
-    renderProducts(filtered);
-}
-
-// Delete product
-async function deleteProduct(id) {
-    if (!confirm("Are you sure you want to deactivate this product?")) return;
-
-    const res = await fetch(`/api/admin/product/${id}`, {
-        method: "DELETE"
-    });
-
-    const data = await res.json();
-    alert(data.message);
-    loadProducts();
-}
-
-// Event listeners for live filtering
-document.getElementById("searchInput").addEventListener("input", applyFilters);
-document.getElementById("categoryFilter").addEventListener("change", applyFilters);
-document.getElementById("activeFilter").addEventListener("change", applyFilters);
-
-// Initialise
-loadProducts();
-loadCategoryFilter();
-</script>
-
+<!-- JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/navbar.js"></script>
+<script src="assets/js/admin-products.js"></script>
 
 </body>
 </html>
