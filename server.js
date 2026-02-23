@@ -1,4 +1,5 @@
-require('./init-db');
+require('./init-db.js');
+
 
 const express = require("express");
 const bcrypt = require("bcrypt");
@@ -6,26 +7,41 @@ const sqlite3 = require("sqlite3").verbose();
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require("path");
+const session = require("express-session");
 
 const app = express();
 const db = new sqlite3.Database("./db.sqlite");
 
-console.log("DB path:", require("path").resolve("./db.sqlite"));
+console.log("DB path:", path.resolve("./db.sqlite"));
 
+// =========================
+// MIDDLEWARE
+// =========================
 
-// Middleware
 app.use(cors());
 app.use(bodyParser.json());
+
+app.use(
+  session({
+    secret: "supersecretkey123",
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false } // secure: false for localhost
+  })
+);
+
 app.use(express.static(path.join(__dirname)));
 
 // =========================
-// DB TABLES
+// DB SCHEMA
 // =========================
 
-// Users (with isAdmin)
+// Users (with firstName, lastName)
 db.run(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    firstName TEXT,
+    lastName TEXT,
     email TEXT UNIQUE,
     password TEXT,
     isAdmin INTEGER DEFAULT 0
@@ -104,9 +120,12 @@ db.run(`
 
 function getOrCreateCart(email, callback) {
   db.get("SELECT * FROM carts WHERE user_email = ?", [email], (err, cart) => {
-    if (cart) return callback(cart);
+    if (err) return callback(null, err);
+    if (cart) return callback(cart, null);
+
     db.run("INSERT INTO carts (user_email) VALUES (?)", [email], function (err2) {
-      callback({ id: this.lastID, user_email: email });
+      if (err2) return callback(null, err2);
+      callback({ id: this.lastID, user_email: email }, null);
     });
   });
 }
@@ -115,45 +134,75 @@ function getOrCreateCart(email, callback) {
 // AUTH ROUTES
 // =========================
 
-// Register (normal users by default)
-app.post("/api/register", async (req, res) => {
-  const { email, password, isAdmin } = req.body;
-  if (!email || !password) return res.status(400).json({ message: "Missing fields" });
+// Register
+app.post("/api/register", (req, res) => {
+  const { firstName, lastName, email, password } = req.body;
 
-  try {
-    const hash = await bcrypt.hash(password, 10);
-    db.run(
-      "INSERT INTO users (email, password, isAdmin) VALUES (?, ?, ?)",
-      [email, hash, isAdmin ? 1 : 0],
-      function (err) {
-        if (err) {
-         console.log("REGISTER ERROR:", err);   // <-- THIS LINE IS ESSENTIAL
-         return res.status(400).json({ message: "User already exists" });
-}
-
-        
-        res.json({ message: "Registered successfully" });
-      }
-    );
-  } catch (err) {
-    res.status(500).json({ message: "Server error" });
+  if (!firstName || !lastName || !email || !password) {
+    return res.status(400).json({ message: "All fields are required." });
   }
+
+  const hashedPassword = bcrypt.hashSync(password, 10);
+
+  const sql = `
+    INSERT INTO users (firstName, lastName, email, password)
+    VALUES (?, ?, ?, ?)
+  `;
+
+  db.run(sql, [firstName, lastName, email, hashedPassword], function (err) {
+    if (err) {
+      console.log("REGISTER ERROR:", err);
+      return res.status(400).json({ message: "Registration failed." });
+    }
+
+    res.json({ message: "Registration successful!" });
+  });
 });
 
 // Login
 app.post("/api/login", (req, res) => {
   const { email, password } = req.body;
+
   db.get("SELECT * FROM users WHERE email = ?", [email], async (err, user) => {
-    if (err || !user) return res.status(400).json({ message: "Invalid credentials" });
+    if (err || !user) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
     const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(400).json({ message: "Invalid credentials" });
+    if (!match) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    req.session.user = {
+      id: user.id,
+      firstName: user.firstName,
+      isAdmin: user.isAdmin
+    };
 
     res.json({
       message: "Login successful",
-      email: user.email,
+      firstName: user.firstName,
       isAdmin: user.isAdmin
     });
+  });
+});
+
+// Session info for navbar
+app.get("/api/session", (req, res) => {
+  if (req.session.user) {
+    return res.json({
+      loggedIn: true,
+      firstName: req.session.user.firstName,
+      isAdmin: req.session.user.isAdmin
+    });
+  }
+  res.json({ loggedIn: false });
+});
+
+// Logout
+app.post("/api/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.json({ message: "Logged out" });
   });
 });
 
@@ -161,7 +210,6 @@ app.post("/api/login", (req, res) => {
 // CATEGORIES
 // =========================
 
-// Get all categories
 app.get("/api/admin/categories", (req, res) => {
   db.all("SELECT * FROM categories", [], (err, rows) => {
     if (err) return res.status(500).json({ message: "Database error" });
@@ -169,26 +217,20 @@ app.get("/api/admin/categories", (req, res) => {
   });
 });
 
-// Add a new category
 app.post("/api/admin/category", (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ message: "Category name required" });
 
-  db.run(
-    "INSERT INTO categories (name) VALUES (?)",
-    [name],
-    function (err) {
-      if (err) return res.status(400).json({ message: "Category already exists" });
-      res.json({ message: "Category added", id: this.lastID });
-    }
-  );
+  db.run("INSERT INTO categories (name) VALUES (?)", [name], function (err) {
+    if (err) return res.status(400).json({ message: "Category already exists" });
+    res.json({ message: "Category added", id: this.lastID });
+  });
 });
 
 // =========================
 // PRODUCTS
 // =========================
 
-// Get all products with category names
 app.get("/api/admin/products", (req, res) => {
   const query = `
     SELECT products.*, categories.name AS category
@@ -201,7 +243,6 @@ app.get("/api/admin/products", (req, res) => {
   });
 });
 
-// Public products (only active)
 app.get("/api/products", (req, res) => {
   const query = `
     SELECT products.*, categories.name AS category
@@ -215,7 +256,6 @@ app.get("/api/products", (req, res) => {
   });
 });
 
-// Add a new product
 app.post("/api/admin/product", (req, res) => {
   const { name, price, description, image, category_id } = req.body;
 
@@ -234,7 +274,6 @@ app.post("/api/admin/product", (req, res) => {
   );
 });
 
-// Update product
 app.put("/api/admin/product/:id", (req, res) => {
   const { id } = req.params;
   const { name, price, description, image, category_id, active } = req.body;
@@ -251,64 +290,61 @@ app.put("/api/admin/product/:id", (req, res) => {
   );
 });
 
-// Soft delete product (set active = 0)
 app.delete("/api/admin/product/:id", (req, res) => {
   const { id } = req.params;
 
-  db.run(
-    "UPDATE products SET active = 0 WHERE id = ?",
-    [id],
-    function (err) {
-      if (err) return res.status(500).json({ message: "Database error" });
-      res.json({ message: "Product deactivated" });
-    }
-  );
+  db.run("UPDATE products SET active = 0 WHERE id = ?", [id], function (err) {
+    if (err) return res.status(500).json({ message: "Database error" });
+    res.json({ message: "Product deactivated" });
+  });
 });
 
 // =========================
-// CART ROUTES
+// CART
 // =========================
 
-// Get cart for user
 app.get("/api/cart", (req, res) => {
   const email = req.query.email;
   if (!email) return res.status(400).json({ message: "Email required" });
 
-  getOrCreateCart(email, (cart) => {
+  getOrCreateCart(email, (cart, err) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+
     db.all(
       `SELECT cart_items.id, products.id AS product_id, products.name, products.price, products.image, cart_items.quantity
        FROM cart_items
        JOIN products ON cart_items.product_id = products.id
        WHERE cart_items.cart_id = ?`,
       [cart.id],
-      (err, items) => {
-        if (err) return res.status(500).json({ message: "Database error" });
+      (err2, items) => {
+        if (err2) return res.status(500).json({ message: "Database error" });
         res.json(items);
       }
     );
   });
 });
 
-// Add item to cart
 app.post("/api/cart/add", (req, res) => {
   const { email, product_id, quantity } = req.body;
   if (!email || !product_id) return res.status(400).json({ message: "Missing fields" });
 
   const qty = quantity || 1;
 
-  getOrCreateCart(email, (cart) => {
+  getOrCreateCart(email, (cart, err) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+
     db.get(
       "SELECT * FROM cart_items WHERE cart_id = ? AND product_id = ?",
       [cart.id, product_id],
-      (err, item) => {
-        if (err) return res.status(500).json({ message: "Database error" });
+      (err2, item) => {
+        if (err2) return res.status(500).json({ message: "Database error" });
 
         if (item) {
           db.run(
             "UPDATE cart_items SET quantity = quantity + ? WHERE id = ?",
             [qty, item.id],
-            function (err2) {
-              if (err2) return res.status(500).json({ message: "Database error" });
+            function (err3) {
+              if (err3) return res.status(500).json({ message: "Database error" });
               res.json({ message: "Cart updated" });
             }
           );
@@ -316,8 +352,8 @@ app.post("/api/cart/add", (req, res) => {
           db.run(
             "INSERT INTO cart_items (cart_id, product_id, quantity) VALUES (?, ?, ?)",
             [cart.id, product_id, qty],
-            function (err2) {
-              if (err2) return res.status(500).json({ message: "Database error" });
+            function (err3) {
+              if (err3) return res.status(500).json({ message: "Database error" });
               res.json({ message: "Added to cart" });
             }
           );
@@ -327,7 +363,6 @@ app.post("/api/cart/add", (req, res) => {
   });
 });
 
-// Update quantity
 app.put("/api/cart/update", (req, res) => {
   const { item_id, quantity } = req.body;
   if (!item_id || quantity == null) {
@@ -344,7 +379,6 @@ app.put("/api/cart/update", (req, res) => {
   );
 });
 
-// Remove item
 app.delete("/api/cart/remove/:id", (req, res) => {
   db.run("DELETE FROM cart_items WHERE id = ?", [req.params.id], function (err) {
     if (err) return res.status(500).json({ message: "Database error" });
@@ -352,14 +386,15 @@ app.delete("/api/cart/remove/:id", (req, res) => {
   });
 });
 
-// Clear cart
 app.delete("/api/cart/clear", (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ message: "Email required" });
 
-  getOrCreateCart(email, (cart) => {
-    db.run("DELETE FROM cart_items WHERE cart_id = ?", [cart.id], function (err) {
-      if (err) return res.status(500).json({ message: "Database error" });
+  getOrCreateCart(email, (cart, err) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+
+    db.run("DELETE FROM cart_items WHERE cart_id = ?", [cart.id], function (err2) {
+      if (err2) return res.status(500).json({ message: "Database error" });
       res.json({ message: "Cart cleared" });
     });
   });
@@ -369,29 +404,35 @@ app.delete("/api/cart/clear", (req, res) => {
 // CHECKOUT / ORDERS
 // =========================
 
-// Checkout: create order from cart
 app.post("/api/checkout", (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ message: "Email required" });
 
-  getOrCreateCart(email, (cart) => {
+  getOrCreateCart(email, (cart, err) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+
     db.all(
       `SELECT cart_items.id, products.id AS product_id, products.price, cart_items.quantity
        FROM cart_items
        JOIN products ON cart_items.product_id = products.id
        WHERE cart_items.cart_id = ?`,
       [cart.id],
-      (err, items) => {
-        if (err) return res.status(500).json({ message: "Database error" });
-        if (items.length === 0) return res.status(400).json({ message: "Cart is empty" });
+      (err2, items) => {
+        if (err2) return res.status(500).json({ message: "Database error" });
+        if (items.length === 0) {
+          return res.status(400).json({ message: "Cart is empty" });
+        }
 
-        const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const total = items.reduce(
+          (sum, item) => sum + item.price * item.quantity,
+          0
+        );
 
         db.run(
           "INSERT INTO orders (user_email, total) VALUES (?, ?)",
           [email, total],
-          function (err2) {
-            if (err2) return res.status(500).json({ message: "Database error" });
+          function (err3) {
+            if (err3) return res.status(500).json({ message: "Database error" });
 
             const orderId = this.lastID;
 
@@ -404,9 +445,13 @@ app.post("/api/checkout", (req, res) => {
             });
 
             stmt.finalize(() => {
-              db.run("DELETE FROM cart_items WHERE cart_id = ?", [cart.id], () => {
-                res.json({ message: "Order placed", orderId });
-              });
+              db.run(
+                "DELETE FROM cart_items WHERE cart_id = ?",
+                [cart.id],
+                () => {
+                  res.json({ message: "Order placed", orderId });
+                }
+              );
             });
           }
         );
@@ -415,7 +460,6 @@ app.post("/api/checkout", (req, res) => {
   });
 });
 
-// Get user orders
 app.get("/api/orders", (req, res) => {
   const email = req.query.email;
   if (!email) return res.status(400).json({ message: "Email required" });
@@ -430,19 +474,13 @@ app.get("/api/orders", (req, res) => {
   );
 });
 
-// Admin: get all orders
 app.get("/api/admin/orders", (req, res) => {
-  db.all(
-    "SELECT * FROM orders ORDER BY created_at DESC",
-    [],
-    (err, rows) => {
-      if (err) return res.status(500).json({ message: "Database error" });
-      res.json(rows);
-    }
-  );
+  db.all("SELECT * FROM orders ORDER BY created_at DESC", [], (err, rows) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+    res.json(rows);
+  });
 });
 
-// Mark order as fulfilled
 app.put("/api/admin/orders/fulfill/:id", (req, res) => {
   const { id } = req.params;
 
@@ -461,4 +499,6 @@ app.put("/api/admin/orders/fulfill/:id", (req, res) => {
 // =========================
 
 const PORT = 3000;
-app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+app.listen(PORT, () =>
+  console.log(`Server running on http://localhost:${PORT}`)
+);

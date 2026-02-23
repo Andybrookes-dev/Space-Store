@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Your Basket – Galactic Threads</title>
+    <title>Basket – Galactic Threads</title>
 
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
@@ -16,119 +16,56 @@
 
 <body>
 
-<script>
-// Require login
-if (!localStorage.getItem("gt_email")) {
-    window.location.href = "login.html";
-}
-</script>
-
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg tron-navbar">
     <div class="container-fluid">
+
         <a class="navbar-brand d-flex align-items-center" href="index.html">
             <img src="assets/images/logo.png" class="logo-icon me-2">
             <span class="brand-text">Galactic Threads</span>
         </a>
 
-        <div class="ms-auto">
-            <a href="basket.html" class="tron-link">Basket (<span id="basketCount">0</span>)</a>
+        <span id="greeting" class="text-light ms-3"></span>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                data-bs-target="#navbarSupportedContent">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav ms-auto mb-2 mb-lg-0"></ul>
         </div>
+
     </div>
 </nav>
 
-<div class="tron-divider"></div>
-
+<!-- BASKET SECTION -->
 <section class="women-section">
     <h2 class="section-title">Your Basket</h2>
 
-    <div class="container" style="max-width: 900px;">
+    <div class="container" style="max-width: 800px;">
 
-        <div id="basketContainer"></div>
+        <div id="cartItems" class="cart-items"></div>
 
-        <div class="text-end mt-4">
-            <h3 class="text-light">Total: £<span id="basketTotal">0.00</span></h3>
-            <a href="checkout.html" class="checkout-btn mt-3">Proceed to Checkout</a>
+        <div class="cart-summary mt-4">
+            <h4 class="text-light">Total: £<span id="cartTotal">0.00</span></h4>
+            <button id="checkoutBtn" class="checkout-btn w-100 mt-3">Proceed to Checkout</button>
         </div>
 
     </div>
 </section>
 
+<!-- FOOTER -->
 <footer class="tron-footer">
     <div class="footer-content">
         <p>© 2026 Galactic Threads</p>
     </div>
 </footer>
 
-<script>
-const email = localStorage.getItem("gt_email");
-
-// Load basket
-async function loadBasket() {
-    const res = await fetch(`/api/cart?email=${email}`);
-    const items = await res.json();
-
-    const container = document.getElementById("basketContainer");
-    container.innerHTML = "";
-
-    let total = 0;
-
-    if (items.length === 0) {
-        container.innerHTML = `<p class="text-light">Your basket is empty.</p>`;
-        document.getElementById("basketTotal").innerText = "0.00";
-        document.getElementById("basketCount").innerText = "0";
-        return;
-    }
-
-    items.forEach(item => {
-        total += item.price * item.quantity;
-
-        container.innerHTML += `
-            <div class="card mb-3 tron-card p-3">
-                <div class="row g-3 align-items-center">
-                    <div class="col-md-2">
-                        <img src="${item.image}" class="img-fluid rounded">
-                    </div>
-                    <div class="col-md-4">
-                        <h5 class="text-light">${item.name}</h5>
-                        <p class="text-info">£${item.price.toFixed(2)}</p>
-                    </div>
-                    <div class="col-md-3">
-                        <input type="number" min="1" class="form-control"
-                               value="${item.quantity}"
-                               onchange="updateQuantity(${item.id}, this.value)">
-                    </div>
-                    <div class="col-md-3 text-end">
-                        <button class="btn btn-danger btn-sm" onclick="removeItem(${item.id})">Remove</button>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-
-    document.getElementById("basketTotal").innerText = total.toFixed(2);
-    document.getElementById("basketCount").innerText = items.length;
-}
-
-// Update quantity
-async function updateQuantity(itemId, qty) {
-    await fetch("/api/cart/update", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ item_id: itemId, quantity: parseInt(qty) })
-    });
-
-    loadBasket();
-}
-
-// Remove item
-async function removeItem(itemId) {
-    await fetch(`/api/cart/remove/${itemId}`, { method: "DELETE" });
-    loadBasket();
-}
-
-loadBasket();
-</script>
+<!-- SCRIPTS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/navbar.js"></script>
+<script src="cart.js"></script>
 
 </body>
 </html>
