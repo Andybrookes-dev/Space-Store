@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Load Product Data
   // -----------------------------
   async function loadProduct() {
-    const res = await fetch(`/api/product/${productId}`);
+    const res = await fetch(`/api/admin/product/${productId}`);
     const p = await res.json();
 
     document.getElementById("name").value = p.name || "";
@@ -60,10 +60,29 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("image").value = p.image || "";
     document.getElementById("active").value = p.active ?? 1;
 
+    if (p.image) {
+      const preview = document.getElementById("imagePreview");
+      preview.src = p.image;
+      preview.style.display = "block";
+    }
+
     await loadCategories(p.category_id);
   }
 
   loadProduct();
+
+
+  // -----------------------------
+  // Live Image Preview
+  // -----------------------------
+  document.getElementById("imageFile").addEventListener("change", function () {
+    const file = this.files[0];
+    if (!file) return;
+
+    const preview = document.getElementById("imagePreview");
+    preview.src = URL.createObjectURL(file);
+    preview.style.display = "block";
+  });
 
 
   // -----------------------------
@@ -72,19 +91,24 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("editProductForm").addEventListener("submit", async (e) => {
     e.preventDefault();
 
-    const updated = {
-      name: document.getElementById("name").value.trim(),
-      price: parseFloat(document.getElementById("price").value),
-      description: document.getElementById("description").value.trim(),
-      image: document.getElementById("image").value.trim(),
-      category_id: document.getElementById("category").value,
-      active: parseInt(document.getElementById("active").value)
-    };
+    const formData = new FormData();
+
+    formData.append("name", document.getElementById("name").value.trim());
+    formData.append("price", document.getElementById("price").value);
+    formData.append("description", document.getElementById("description").value.trim());
+    formData.append("category_id", document.getElementById("category").value);
+    formData.append("active", document.getElementById("active").value);
+
+    const file = document.getElementById("imageFile").files[0];
+    if (file) {
+      formData.append("imageFile", file);
+    } else {
+      formData.append("image", document.getElementById("image").value.trim());
+    }
 
     const res = await fetch(`/api/admin/product/${productId}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updated)
+      body: formData
     });
 
     const data = await res.json();

@@ -9,7 +9,6 @@ async function checkAdminAccess() {
     window.location.href = "index.html";
   }
 }
-
 checkAdminAccess();
 
 
@@ -20,10 +19,10 @@ let allProducts = [];
 
 
 // -----------------------------
-// Load all products
+// Load all products (ADMIN)
 // -----------------------------
 async function loadProducts() {
-  const res = await fetch("/api/products");
+  const res = await fetch("/api/admin/products");
   allProducts = await res.json();
   applyFilters();
 }
@@ -97,12 +96,12 @@ function applyFilters() {
 
 
 // -----------------------------
-// Delete product
+// Delete product (HARD DELETE)
 // -----------------------------
 async function deleteProduct(id) {
-  if (!confirm("Are you sure you want to deactivate this product?")) return;
+  if (!confirm("Are you sure you want to permanently delete this product?")) return;
 
-  const res = await fetch(`/api/product/${id}`, {
+  const res = await fetch(`/api/admin/product/${id}`, {
     method: "DELETE"
   });
 

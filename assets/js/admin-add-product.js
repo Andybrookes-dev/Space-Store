@@ -32,29 +32,42 @@ loadCategories();
 
 
 // -----------------------------
+// Image Preview
+// -----------------------------
+document.getElementById("imageFile").addEventListener("change", function () {
+  const file = this.files[0];
+  if (!file) return;
+
+  const preview = document.getElementById("imagePreview");
+  preview.src = URL.createObjectURL(file);
+  preview.style.display = "block";
+});
+
+
+// -----------------------------
 // Handle Add Product Form
 // -----------------------------
 document.getElementById("addProductForm").addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const product = {
-    name: document.getElementById("name").value.trim(),
-    price: parseFloat(document.getElementById("price").value),
-    description: document.getElementById("description").value.trim(),
-    image: document.getElementById("image").value.trim(),
-    category_id: document.getElementById("category").value
-  };
+  const formData = new FormData();
 
-  // Basic validation
-  if (!product.name || !product.price || !product.category_id) {
-    alert("Please fill in all required fields.");
-    return;
+  formData.append("name", document.getElementById("name").value.trim());
+  formData.append("price", document.getElementById("price").value);
+  formData.append("description", document.getElementById("description").value.trim());
+  formData.append("category_id", document.getElementById("category").value);
+  formData.append("active", 1); // ensure new product is active
+
+  const file = document.getElementById("imageFile").files[0];
+  if (file) {
+    formData.append("imageFile", file);
+  } else {
+    formData.append("image", document.getElementById("image").value.trim());
   }
 
   const res = await fetch("/api/admin/product", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(product)
+    body: formData
   });
 
   const data = await res.json();

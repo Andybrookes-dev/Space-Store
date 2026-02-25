@@ -1,13 +1,17 @@
-require('./init-db.js');
+// =========================
+// INITIAL SETUP
+// =========================
 
+require("./init-db.js");
 
 const express = require("express");
 const bcrypt = require("bcrypt");
 const sqlite3 = require("sqlite3").verbose();
-const bodyParser = require("body-parser");
 const cors = require("cors");
 const path = require("path");
 const session = require("express-session");
+const fs = require("fs");
+const multer = require("multer");
 
 const app = express();
 const db = new sqlite3.Database("./db.sqlite");
@@ -15,28 +19,46 @@ const db = new sqlite3.Database("./db.sqlite");
 console.log("DB path:", path.resolve("./db.sqlite"));
 
 // =========================
+// MULTER (FILE UPLOADS)
+// =========================
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "assets/images/products/");
+  },
+  filename: (req, file, cb) => {
+    const unique = Date.now() + "-" + file.originalname;
+    cb(null, unique);
+  }
+});
+
+const upload = multer({ storage });
+
+// =========================
 // MIDDLEWARE
 // =========================
 
 app.use(cors());
-app.use(bodyParser.json());
+
+// IMPORTANT: allow FormData + normal forms
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+
+
 
 app.use(
   session({
     secret: "supersecretkey123",
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false } // secure: false for localhost
+    cookie: { secure: false }
   })
 );
 
-app.use(express.static(path.join(__dirname)));
-
 // =========================
-// DB SCHEMA
+// DATABASE SCHEMA
 // =========================
 
-// Users (with firstName, lastName)
 db.run(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,7 +70,6 @@ db.run(`
   )
 `);
 
-// Categories
 db.run(`
   CREATE TABLE IF NOT EXISTS categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,7 +77,6 @@ db.run(`
   )
 `);
 
-// Products
 db.run(`
   CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -70,7 +90,6 @@ db.run(`
   )
 `);
 
-// Carts
 db.run(`
   CREATE TABLE IF NOT EXISTS carts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,7 +97,6 @@ db.run(`
   )
 `);
 
-// Cart items
 db.run(`
   CREATE TABLE IF NOT EXISTS cart_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,7 +108,6 @@ db.run(`
   )
 `);
 
-// Orders
 db.run(`
   CREATE TABLE IF NOT EXISTS orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -101,7 +118,6 @@ db.run(`
   )
 `);
 
-// Order items
 db.run(`
   CREATE TABLE IF NOT EXISTS order_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -134,7 +150,6 @@ function getOrCreateCart(email, callback) {
 // AUTH ROUTES
 // =========================
 
-// Register
 app.post("/api/register", (req, res) => {
   const { firstName, lastName, email, password } = req.body;
 
@@ -144,34 +159,25 @@ app.post("/api/register", (req, res) => {
 
   const hashedPassword = bcrypt.hashSync(password, 10);
 
-  const sql = `
-    INSERT INTO users (firstName, lastName, email, password)
-    VALUES (?, ?, ?, ?)
-  `;
-
-  db.run(sql, [firstName, lastName, email, hashedPassword], function (err) {
-    if (err) {
-      console.log("REGISTER ERROR:", err);
-      return res.status(400).json({ message: "Registration failed." });
+  db.run(
+    `INSERT INTO users (firstName, lastName, email, password)
+     VALUES (?, ?, ?, ?)`,
+    [firstName, lastName, email, hashedPassword],
+    function (err) {
+      if (err) return res.status(400).json({ message: "Registration failed." });
+      res.json({ message: "Registration successful!" });
     }
-
-    res.json({ message: "Registration successful!" });
-  });
+  );
 });
 
-// Login
 app.post("/api/login", (req, res) => {
   const { email, password } = req.body;
 
   db.get("SELECT * FROM users WHERE email = ?", [email], async (err, user) => {
-    if (err || !user) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
+    if (err || !user) return res.status(400).json({ message: "Invalid credentials" });
 
     const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
+    if (!match) return res.status(400).json({ message: "Invalid credentials" });
 
     req.session.user = {
       id: user.id,
@@ -188,7 +194,6 @@ app.post("/api/login", (req, res) => {
   });
 });
 
-// Session info for navbar
 app.get("/api/session", (req, res) => {
   if (req.session.user) {
     return res.json({
@@ -201,18 +206,14 @@ app.get("/api/session", (req, res) => {
   res.json({ loggedIn: false });
 });
 
-// Logout
 app.post("/api/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.json({ message: "Logged out" });
-  });
+  req.session.destroy(() => res.json({ message: "Logged out" }));
 });
 
 // =========================
-// CATEGORIES
+// CATEGORY ROUTES
 // =========================
 
-// Admin: get all categories
 app.get("/api/admin/categories", (req, res) => {
   db.all("SELECT * FROM categories", [], (err, rows) => {
     if (err) return res.status(500).json({ message: "Database error" });
@@ -220,7 +221,6 @@ app.get("/api/admin/categories", (req, res) => {
   });
 });
 
-// Public: get all categories
 app.get("/api/categories", (req, res) => {
   db.all("SELECT * FROM categories", [], (err, rows) => {
     if (err) return res.status(500).json({ message: "Database error" });
@@ -228,7 +228,6 @@ app.get("/api/categories", (req, res) => {
   });
 });
 
-// Admin: add category
 app.post("/api/admin/category", (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ message: "Category name required" });
@@ -240,10 +239,10 @@ app.post("/api/admin/category", (req, res) => {
 });
 
 // =========================
-// PRODUCTS
+// PRODUCT ROUTES
 // =========================
 
-// Admin: get ALL products (active + inactive)
+// Admin: all products
 app.get("/api/admin/products", (req, res) => {
   const query = `
     SELECT products.*, categories.name AS category
@@ -256,7 +255,7 @@ app.get("/api/admin/products", (req, res) => {
   });
 });
 
-// Public: get ACTIVE products only
+// Public: active products only
 app.get("/api/products", (req, res) => {
   const query = `
     SELECT products.*, categories.name AS category
@@ -270,7 +269,7 @@ app.get("/api/products", (req, res) => {
   });
 });
 
-// Admin: get single product by ID
+// Admin: single product
 app.get("/api/product/:id", (req, res) => {
   const query = `
     SELECT products.*, categories.name AS category
@@ -285,12 +284,12 @@ app.get("/api/product/:id", (req, res) => {
 });
 
 // Admin: add product
-app.post("/api/admin/product", (req, res) => {
-  const { name, price, description, image, category_id } = req.body;
+app.post("/api/admin/product", upload.single("imageFile"), (req, res) => {
+  const { name, price, description, category_id } = req.body;
 
-  if (!name || !price || !category_id) {
-    return res.status(400).json({ message: "Missing required fields" });
-  }
+  const image = req.file
+    ? `assets/images/products/${req.file.filename}`
+    : req.body.image;
 
   db.run(
     `INSERT INTO products (name, price, description, image, category_id)
@@ -304,15 +303,18 @@ app.post("/api/admin/product", (req, res) => {
 });
 
 // Admin: update product
-app.put("/api/admin/product/:id", (req, res) => {
-  const { id } = req.params;
-  const { name, price, description, image, category_id, active } = req.body;
+app.put("/api/admin/product/:id", upload.single("imageFile"), (req, res) => {
+  const { name, price, description, category_id, active } = req.body;
+
+  const image = req.file
+    ? `assets/images/products/${req.file.filename}`
+    : req.body.image;
 
   db.run(
     `UPDATE products
      SET name = ?, price = ?, description = ?, image = ?, category_id = ?, active = ?
      WHERE id = ?`,
-    [name, price, description, image, category_id, active, id],
+    [name, price, description, image, category_id, active, req.params.id],
     function (err) {
       if (err) return res.status(500).json({ message: "Database error" });
       res.json({ message: "Product updated" });
@@ -320,20 +322,32 @@ app.put("/api/admin/product/:id", (req, res) => {
   );
 });
 
-// Admin: soft delete (deactivate)
+// Admin: HARD DELETE (remove DB row + delete image)
 app.delete("/api/admin/product/:id", (req, res) => {
-  const { id } = req.params;
+  const id = req.params.id;
 
-  db.run("UPDATE products SET active = 0 WHERE id = ?", [id], function (err) {
+  db.get("SELECT image FROM products WHERE id = ?", [id], (err, row) => {
     if (err) return res.status(500).json({ message: "Database error" });
-    res.json({ message: "Product deactivated" });
+    if (!row) return res.status(404).json({ message: "Product not found" });
+
+    const imagePath = row.image;
+
+    db.run("DELETE FROM products WHERE id = ?", [id], function (err) {
+      if (err) return res.status(500).json({ message: "Failed to delete product" });
+
+      if (imagePath && fs.existsSync(imagePath)) {
+        fs.unlink(imagePath, (err) => {
+          if (err) console.log("Failed to delete image:", err);
+        });
+      }
+
+      res.json({ message: "Product deleted successfully" });
+    });
   });
 });
 
-
-
 // =========================
-// CART
+// CART ROUTES
 // =========================
 
 app.get("/api/cart", (req, res) => {
@@ -434,7 +448,7 @@ app.delete("/api/cart/clear", (req, res) => {
 });
 
 // =========================
-// CHECKOUT / ORDERS
+// ORDER ROUTES
 // =========================
 
 app.post("/api/checkout", (req, res) => {
@@ -528,8 +542,15 @@ app.put("/api/admin/orders/fulfill/:id", (req, res) => {
 });
 
 // =========================
-// SERVER
+// SERVER START
 // =========================
+// SAFE static file serving (root frontend)
+
+app.use(
+  express.static(__dirname, {
+    extensions: ["html"]
+  })
+);
 
 const PORT = 3000;
 app.listen(PORT, () =>
