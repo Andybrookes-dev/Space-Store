@@ -188,36 +188,8 @@ nav.tron-navbar .nav-link:hover::after {
     text-shadow: 0 0 12px #00eaff;
 }
 
-/* Responsive grid */
-.women-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 25px;
-}
 
-@media (max-width: 992px) {
-    .women-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
 
-@media (max-width: 576px) {
-    .women-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-.women-grid img {
-    width: 100%;
-    border-radius: 6px;
-    box-shadow: 0 0 12px #00eaff55;
-    transition: 0.3s ease;
-}
-
-.women-grid img:hover {
-    transform: scale(1.03);
-    box-shadow: 0 0 20px #00eaff;
-}
 
 /* =========================================================
    FOOTER
@@ -259,6 +231,40 @@ nav.tron-navbar .nav-link:hover::after {
 }
 
 
+.collection-section {
+    padding: 60px 20px;
+    background: #0a0f1f;
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+}
+
+@media (max-width: 992px) {
+    .product-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    .product-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.product-grid img {
+    width: 100%;
+    border-radius: 6px;
+    box-shadow: 0 0 12px #00eaff55;
+    transition: 0.3s ease;
+}
+
+.product-grid img:hover {
+    transform: scale(1.03);
+    box-shadow: 0 0 20px #00eaff;
+}
 
 
 

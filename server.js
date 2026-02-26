@@ -55,6 +55,12 @@ app.use(
   })
 );
 
+app.use((req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
+
+
 // =========================
 // DATABASE SCHEMA
 // =========================
@@ -243,17 +249,28 @@ app.post("/api/admin/category", (req, res) => {
 // =========================
 
 // Admin: all products
-app.get("/api/admin/products", (req, res) => {
-  const query = `
+app.get("/api/products", (req, res) => {
+  const category = req.query.category;
+
+  let query = `
     SELECT products.*, categories.name AS category
     FROM products
     LEFT JOIN categories ON products.category_id = categories.id
+    WHERE products.active = 1
   `;
-  db.all(query, [], (err, rows) => {
+  const params = [];
+
+  if (category) {
+    query += " AND LOWER(categories.name) = LOWER(?)";
+    params.push(category);
+  }
+
+  db.all(query, params, (err, rows) => {
     if (err) return res.status(500).json({ message: "Database error" });
     res.json(rows);
   });
 });
+
 
 // Public: active products only
 app.get("/api/products", (req, res) => {

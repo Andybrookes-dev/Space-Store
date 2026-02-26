@@ -51,7 +51,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Load Product Data
   // -----------------------------
   async function loadProduct() {
-    const res = await fetch(`/api/admin/product/${productId}`);
+    const res = await fetch(`/api/product/${productId}`);
     const p = await res.json();
 
     document.getElementById("name").value = p.name || "";
@@ -106,7 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
       formData.append("image", document.getElementById("image").value.trim());
     }
 
-    const res = await fetch(`/api/admin/product/${productId}`, {
+    const res = await fetch(`/api/product/${productId}`, {
       method: "PUT",
       body: formData
     });
