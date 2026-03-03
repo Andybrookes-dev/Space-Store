@@ -276,4 +276,189 @@ nav.tron-navbar .nav-link:hover::after {
 }
 
 
+.preview-img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border: 2px solid #0ff;
+  border-radius: 6px;
+  margin-right: 12px;
+}
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 
+/* =========================================================
+   ADMIN REORDER PAGE
+   ========================================================= */
+
+.sortable-list {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 40px;
+}
+
+.sortable-item {
+    background: rgba(0, 234, 255, 0.05);
+    border: 2px solid #00eaff;
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: 0.25s ease;
+}
+
+.sortable-item:hover {
+    background: rgba(0, 234, 255, 0.15);
+    box-shadow: 0 0 12px #00eaff55;
+}
+
+.item-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #00eaff;
+    text-shadow: 0 0 6px #00eaff;
+}
+
+.save-btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 1.2rem;
+    font-family: 'Orbitron', sans-serif;
+    background: #00eaff;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    margin-top: 20px;
+    margin-bottom: 40px;
+    box-shadow: 0 0 12px #00eaff;
+    transition: 0.25s ease;
+}
+
+.save-btn:hover {
+    background: #00cce0;
+    box-shadow: 0 0 20px #00eaff;
+}
+
+.tron-subtitle {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.8rem;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    text-shadow: 0 0 8px #00eaff;
+    color: #00eaff;
+}
+
+.toast-box {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #00eaff;
+    color: #000;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-family: 'Orbitron', sans-serif;
+    display: none;
+    box-shadow: 0 0 15px #00eaff;
+}
+
+/* Responsive navbar toggler */
+.navbar-toggler {
+    border-color: #00eaff;
+}
+
+.navbar-toggler-icon {
+    filter: invert(100%) drop-shadow(0 0 6px #00eaff);
+}
+
+
+/* =========================================================
+   ADMIN REORDER PAGE
+   ========================================================= */
+
+.sortable-list {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 40px;
+}
+
+.sortable-item {
+    background: rgba(0, 234, 255, 0.05);
+    border: 2px solid #00eaff;
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    cursor: grab;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: 0.25s ease;
+}
+
+.sortable-item:hover {
+    background: rgba(0, 234, 255, 0.15);
+    box-shadow: 0 0 12px #00eaff55;
+}
+
+.item-name {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #00eaff;
+    text-shadow: 0 0 6px #00eaff;
+}
+
+.save-btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 1.2rem;
+    font-family: 'Orbitron', sans-serif;
+    background: #00eaff;
+    color: #000;
+    border: none;
+    border-radius: 8px;
+    margin-top: 20px;
+    margin-bottom: 40px;
+    box-shadow: 0 0 12px #00eaff;
+    transition: 0.25s ease;
+}
+
+.save-btn:hover {
+    background: #00cce0;
+    box-shadow: 0 0 20px #00eaff;
+}
+
+.tron-subtitle {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.8rem;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    text-shadow: 0 0 8px #00eaff;
+    color: #00eaff;
+}
+
+.toast-box {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #00eaff;
+    color: #000;
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-family: 'Orbitron', sans-serif;
+    display: none;
+    box-shadow: 0 0 15px #00eaff;
+}
+
+/* Responsive navbar toggler */
+.navbar-toggler {
+    border-color: #00eaff;
+}
+
+.navbar-toggler-icon {
+    filter: invert(100%) drop-shadow(0 0 6px #00eaff);
+}

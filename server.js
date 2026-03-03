@@ -248,29 +248,40 @@ app.post("/api/admin/category", (req, res) => {
 // PRODUCT ROUTES
 // =========================
 
-// Admin: all products
+// =========================
+// PRODUCT ROUTES (CLEAN + ORDERED)
+// =========================
 app.get("/api/products", (req, res) => {
-  const category = req.query.category;
-
-  let query = `
-    SELECT products.*, categories.name AS category
+  const sql = `
+    SELECT 
+      products.id,
+      products.name,
+      products.price,
+      products.description,
+      products.image,
+      products.category_id,
+      categories.name AS category,
+      products.active,
+      products.display_order
     FROM products
     LEFT JOIN categories ON products.category_id = categories.id
-    WHERE products.active = 1
+    ORDER BY products.display_order ASC, products.id ASC
   `;
-  const params = [];
 
-  if (category) {
-    query += " AND LOWER(categories.name) = LOWER(?)";
-    params.push(category);
-  }
+  db.all(sql, [], (err, rows) => {
+    if (err) {
+      console.error("Error fetching products:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
 
-  db.all(query, params, (err, rows) => {
-    if (err) return res.status(500).json({ message: "Database error" });
     res.json(rows);
   });
 });
 
+
+
+
+// Admin: all products (unsorted, newest first)
 app.get("/api/admin/products", (req, res) => {
   const query = `
     SELECT products.*, categories.name AS category
@@ -284,18 +295,23 @@ app.get("/api/admin/products", (req, res) => {
   });
 });
 
+// Admin: reorder products (drag & drop)
+app.put("/api/products/reorder", (req, res) => {
+  const { order } = req.body;
 
-// Public: active products only
-app.get("/api/products", (req, res) => {
-  const query = `
-    SELECT products.*, categories.name AS category
-    FROM products
-    LEFT JOIN categories ON products.category_id = categories.id
-    WHERE products.active = 1
-  `;
-  db.all(query, [], (err, rows) => {
-    if (err) return res.status(500).json({ message: "Database error" });
-    res.json(rows);
+  if (!Array.isArray(order)) {
+    return res.status(400).json({ success: false, message: "Invalid order format" });
+  }
+
+  const stmt = db.prepare("UPDATE products SET display_order = ? WHERE id = ?");
+
+  order.forEach((productId, index) => {
+    stmt.run(index, productId);
+  });
+
+  stmt.finalize(err => {
+    if (err) return res.status(500).json({ success: false });
+    res.json({ success: true });
   });
 });
 
@@ -321,15 +337,19 @@ app.post("/api/admin/product", upload.single("imageFile"), (req, res) => {
     ? `assets/images/products/${req.file.filename}`
     : req.body.image;
 
-  db.run(
-    `INSERT INTO products (name, price, description, image, category_id)
-     VALUES (?, ?, ?, ?, ?)`,
-    [name, price, description, image, category_id],
-    function (err) {
-      if (err) return res.status(500).json({ message: "Database error" });
-      res.json({ message: "Product added", id: this.lastID });
-    }
-  );
+  db.get("SELECT MAX(display_order) AS maxOrder FROM products", (err, row) => {
+    const nextOrder = (row?.maxOrder ?? 0) + 1;
+
+    db.run(
+      `INSERT INTO products (name, price, description, image, category_id, display_order)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [name, price, description, image, category_id, nextOrder],
+      function (err) {
+        if (err) return res.status(500).json({ message: "Database error" });
+        res.json({ message: "Product added", id: this.lastID });
+      }
+    );
+  });
 });
 
 // Admin: update product
@@ -352,7 +372,7 @@ app.put("/api/admin/product/:id", upload.single("imageFile"), (req, res) => {
   );
 });
 
-// Admin: HARD DELETE (remove DB row + delete image)
+// Admin: HARD DELETE
 app.delete("/api/admin/product/:id", (req, res) => {
   const id = req.params.id;
 
@@ -375,6 +395,7 @@ app.delete("/api/admin/product/:id", (req, res) => {
     });
   });
 });
+
 
 // =========================
 // CART ROUTES
@@ -575,6 +596,7 @@ app.put("/api/admin/orders/fulfill/:id", (req, res) => {
 // SERVER START
 // =========================
 // SAFE static file serving (root frontend)
+app.use(express.static(path.join(__dirname, "public")));
 
 app.use(
   express.static(__dirname, {
