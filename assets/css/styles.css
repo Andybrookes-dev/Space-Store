@@ -267,6 +267,13 @@ nav.tron-navbar .nav-link:hover::after {
 }
 
 
+.product-description {
+    color: #b8eaff;
+    font-size: 0.95rem;
+    margin-top: 10px;
+    opacity: 0.85;
+    line-height: 1.4;
+}
 
 
 

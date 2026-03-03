@@ -20,14 +20,15 @@ async function loadProducts(category) {
             card.classList.add("product-card");
 
             card.innerHTML = `
-                <img src="${product.image}" alt="${product.name}">
-                <h3>${product.name}</h3>
-                <p>£${product.price.toFixed(2)}</p>
-                <button class="add-to-cart"
-                    data-id="${product.id}">
-                    Add to Basket
-                </button>
-            `;
+    <img src="${product.image}" alt="${product.name}">
+    <h3>${product.name}</h3>
+    <p class="product-price">£${product.price.toFixed(2)}</p>
+    <p class="product-description">${product.description}</p>
+    <button class="add-to-cart" data-id="${product.id}">
+        Add to Basket
+    </button>
+`;
+
 
             grid.appendChild(card);
         });

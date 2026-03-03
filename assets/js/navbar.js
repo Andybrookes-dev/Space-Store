@@ -36,7 +36,7 @@ async function buildNavbar() {
 
     navList.innerHTML += `
       <li class="nav-item">
-        <a class="nav-link" href="orders.html">My Orders</a>
+        <a class="nav-link" href="my-orders.html">My Orders</a>
       </li>
     `;
 

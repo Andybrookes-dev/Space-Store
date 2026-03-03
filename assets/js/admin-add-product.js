@@ -17,7 +17,7 @@ checkAdminAccess();
 // Load Categories into Dropdown
 // -----------------------------
 async function loadCategories() {
-  const res = await fetch("/api/admin/categories");
+  const res = await fetch("/api/categories");
   const categories = await res.json();
 
   const select = document.getElementById("category");
@@ -56,7 +56,7 @@ document.getElementById("addProductForm").addEventListener("submit", async (e) =
   formData.append("price", document.getElementById("price").value);
   formData.append("description", document.getElementById("description").value.trim());
   formData.append("category_id", document.getElementById("category").value);
-  formData.append("active", 1); // ensure new product is active
+  formData.append("active", 1);
 
   const file = document.getElementById("imageFile").files[0];
   if (file) {

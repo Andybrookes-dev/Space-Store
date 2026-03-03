@@ -11,7 +11,6 @@ document.addEventListener("DOMContentLoaded", () => {
       window.location.href = "index.html";
     }
   }
-
   checkAdminAccess();
 
 
@@ -31,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Load Categories
   // -----------------------------
   async function loadCategories(selectedId) {
-    const res = await fetch("/api/admin/categories");
+    const res = await fetch("/api/categories");
     const categories = await res.json();
 
     const select = document.getElementById("category");
@@ -106,7 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
       formData.append("image", document.getElementById("image").value.trim());
     }
 
-    const res = await fetch(`/api/product/${productId}`, {
+    const res = await fetch(`/api/admin/product/${productId}`, {
       method: "PUT",
       body: formData
     });

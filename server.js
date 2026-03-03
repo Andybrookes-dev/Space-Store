@@ -271,6 +271,19 @@ app.get("/api/products", (req, res) => {
   });
 });
 
+app.get("/api/admin/products", (req, res) => {
+  const query = `
+    SELECT products.*, categories.name AS category
+    FROM products
+    LEFT JOIN categories ON products.category_id = categories.id
+    ORDER BY products.id DESC
+  `;
+  db.all(query, [], (err, rows) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+    res.json(rows);
+  });
+});
+
 
 // Public: active products only
 app.get("/api/products", (req, res) => {
