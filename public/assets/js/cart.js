@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         cartItemsContainer.innerHTML = "";
 
-        if (items.length === 0) {
+        if (!items || items.length === 0) {
             cartItemsContainer.innerHTML = `
                 <p class="text-light text-center mt-4">Your basket is empty.</p>
             `;
@@ -51,23 +51,22 @@ document.addEventListener("DOMContentLoaded", () => {
             div.className = "cart-item fade-in";
 
             div.innerHTML = `
-    <img src="${item.image}" class="cart-item-img">
+                <img src="${item.image}" class="cart-item-img">
 
-    <div class="cart-item-info">
-        <h5 class="text-light">${item.name}</h5>
-        <p class="text-light">£${item.price.toFixed(2)}</p>
-        <p class="text-light">Size: ${item.size}</p>
+                <div class="cart-item-info">
+                    <h5 class="text-light">${item.name}</h5>
+                    <p class="text-light">£${item.price.toFixed(2)}</p>
+                    <p class="text-light">Size: ${item.size}</p>
 
-        <div class="quantity-controls">
-            <button class="qty-btn" data-id="${item.id}" data-action="minus">−</button>
-            <span class="qty-number">${item.quantity}</span>
-            <button class="qty-btn" data-id="${item.id}" data-action="plus">+</button>
-        </div>
-    </div>
+                    <div class="quantity-controls">
+                        <button class="qty-btn" data-id="${item.id}" data-action="minus">−</button>
+                        <span class="qty-number">${item.quantity}</span>
+                        <button class="qty-btn" data-id="${item.id}" data-action="plus">+</button>
+                    </div>
+                </div>
 
-    <button class="remove-btn" data-remove="${item.id}">✕</button>
-`;
-
+                <button class="remove-btn" data-remove="${item.id}">✕</button>
+            `;
 
             cartItemsContainer.appendChild(div);
         });
@@ -124,22 +123,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     // -----------------------------
-    // Checkout
+    // Checkout Button
     // -----------------------------
-    checkoutBtn.addEventListener("click", async () => {
-        const res = await fetch("/api/checkout", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email: userEmail })
-        });
-
-        const data = await res.json();
-        alert(data.message);
-
-        if (res.ok) {
-            window.location.href = "orders.html";
-        }
-    });
+    checkoutBtn.addEventListener("click", () => {
+    window.location.href = "checkout.html";
+});
 
     // Start
     loadSession();

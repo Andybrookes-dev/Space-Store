@@ -95,9 +95,11 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     alert(data.message);
 
     if (res.ok) {
+        localStorage.setItem("gt_email", email);   // ⭐ FIX ⭐
         window.location.href = "index.html";
     }
 });
+
 </script>
 
 </body>

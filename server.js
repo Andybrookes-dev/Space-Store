@@ -108,11 +108,14 @@ db.run(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     cart_id INTEGER NOT NULL,
     product_id INTEGER NOT NULL,
+    variant_id INTEGER,
     quantity INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY (cart_id) REFERENCES carts(id),
-    FOREIGN KEY (product_id) REFERENCES products(id)
+    FOREIGN KEY (product_id) REFERENCES products(id),
+    FOREIGN KEY (variant_id) REFERENCES product_variants(id)
   )
 `);
+
 
 db.run(`
   CREATE TABLE IF NOT EXISTS orders (
@@ -528,7 +531,16 @@ app.delete("/api/cart/clear", (req, res) => {
 // =========================
 
 app.post("/api/checkout", (req, res) => {
-  const { email } = req.body;
+  const {
+    email,
+    fullName,
+    address_line1,
+    address_line2,
+    city,
+    postcode,
+    country
+  } = req.body;
+
   if (!email) return res.status(400).json({ message: "Email required" });
 
   getOrCreateCart(email, (cart, err) => {
@@ -536,13 +548,12 @@ app.post("/api/checkout", (req, res) => {
 
     db.all(
       `SELECT 
-       cart_items.id, 
-       products.id AS product_id, 
-       products.name,
-       products.price, 
-       cart_items.quantity,
-       cart_items.variant_id
-
+         cart_items.id, 
+         products.id AS product_id, 
+         products.name,
+         products.price, 
+         cart_items.quantity,
+         cart_items.variant_id
        FROM cart_items
        JOIN products ON cart_items.product_id = products.id
        WHERE cart_items.cart_id = ?`,
@@ -559,16 +570,28 @@ app.post("/api/checkout", (req, res) => {
         );
 
         db.run(
-          "INSERT INTO orders (user_email, total) VALUES (?, ?)",
-          [email, total],
+          `INSERT INTO orders 
+             (user_email, total, full_name, address_line1, address_line2, city, postcode, country)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            email,
+            total,
+            fullName,
+            address_line1,
+            address_line2,
+            city,
+            postcode,
+            country
+          ],
           function (err3) {
             if (err3) return res.status(500).json({ message: "Database error" });
 
             const orderId = this.lastID;
 
             const stmt = db.prepare(
-              "INSERT INTO order_items (order_id, product_id, variant_id, quantity, price) VALUES (?, ?, ?, ?, ?)"
-
+              `INSERT INTO order_items 
+                 (order_id, product_id, variant_id, quantity, price)
+               VALUES (?, ?, ?, ?, ?)`
             );
 
             items.forEach((item) => {
@@ -590,6 +613,7 @@ app.post("/api/checkout", (req, res) => {
     );
   });
 });
+
 
 app.get("/api/orders", (req, res) => {
   const email = req.query.email;
