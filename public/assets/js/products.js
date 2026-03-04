@@ -20,17 +20,32 @@ async function loadProducts(category) {
             card.classList.add("product-card");
 
             card.innerHTML = `
-    <img src="${product.image}" alt="${product.name}">
-    <h3>${product.name}</h3>
-    <p class="product-price">£${product.price.toFixed(2)}</p>
-    <p class="product-description">${product.description}</p>
-    <button class="add-to-cart" data-id="${product.id}">
-        Add to Basket
-    </button>
-`;
+                <img src="${product.image}" alt="${product.name}">
+                <h3>${product.name}</h3>
+                <p class="product-price">£${product.price.toFixed(2)}</p>
+                <p class="product-description">${product.description}</p>
 
+                <label class="text-light">Size</label>
+                <select class="size-select form-select mb-2" data-product="${product.id}">
+                    <option value="">Select size</option>
+                </select>
+
+                <button class="add-to-cart" data-id="${product.id}">
+                    Add to Basket
+                </button>
+            `;
 
             grid.appendChild(card);
+
+            // ⭐ Load variants for THIS product
+            fetch(`/api/products/${product.id}`)
+                .then(res => res.json())
+                .then(fullProduct => {
+                    const select = card.querySelector(".size-select");
+                    fullProduct.variants.forEach(v => {
+                        select.innerHTML += `<option value="${v.id}">${v.size}</option>`;
+                    });
+                });
         });
 
         attachCartButtons();
@@ -39,6 +54,7 @@ async function loadProducts(category) {
         console.error("Error loading products:", err);
     }
 }
+
 
 function attachCartButtons() {
     document.querySelectorAll(".add-to-cart").forEach(btn => {
@@ -57,18 +73,30 @@ function attachCartButtons() {
             const product_id = btn.dataset.id;
 
             // Add to cart
-            const addRes = await fetch("/api/cart/add", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    email,
-                    product_id,
-                    quantity: 1
-                })
-            });
+            const sizeSelect = btn.parentElement.querySelector(".size-select");
+const variant_id = sizeSelect.value;
+
+if (!variant_id) {
+    alert("Please select a size.");
+    return;
+}
+
+const addRes = await fetch("/api/cart/add", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+        email,
+        product_id,
+        variant_id,
+        quantity: 1
+    })
+});
+
 
             const data = await addRes.json();
             alert(data.message || "Added to basket!");
+
+            // Update cart count in navbar
         });
     });
 }

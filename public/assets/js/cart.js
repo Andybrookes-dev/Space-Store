@@ -51,21 +51,23 @@ document.addEventListener("DOMContentLoaded", () => {
             div.className = "cart-item fade-in";
 
             div.innerHTML = `
-                <img src="${item.image}" class="cart-item-img">
+    <img src="${item.image}" class="cart-item-img">
 
-                <div class="cart-item-info">
-                    <h5 class="text-light">${item.name}</h5>
-                    <p class="text-light">£${item.price.toFixed(2)}</p>
+    <div class="cart-item-info">
+        <h5 class="text-light">${item.name}</h5>
+        <p class="text-light">£${item.price.toFixed(2)}</p>
+        <p class="text-light">Size: ${item.size}</p>
 
-                    <div class="quantity-controls">
-                        <button class="qty-btn" data-id="${item.id}" data-action="minus">−</button>
-                        <span class="qty-number">${item.quantity}</span>
-                        <button class="qty-btn" data-id="${item.id}" data-action="plus">+</button>
-                    </div>
-                </div>
+        <div class="quantity-controls">
+            <button class="qty-btn" data-id="${item.id}" data-action="minus">−</button>
+            <span class="qty-number">${item.quantity}</span>
+            <button class="qty-btn" data-id="${item.id}" data-action="plus">+</button>
+        </div>
+    </div>
 
-                <button class="remove-btn" data-remove="${item.id}">✕</button>
-            `;
+    <button class="remove-btn" data-remove="${item.id}">✕</button>
+`;
+
 
             cartItemsContainer.appendChild(div);
         });

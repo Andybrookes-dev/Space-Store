@@ -16,8 +16,6 @@
 
 <body>
 
-<body>
-
 <script>
 // Admin protection using real session
 fetch("/api/session")
@@ -31,10 +29,12 @@ fetch("/api/session")
 
 
 
+
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg tron-navbar">
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="index.html">
+
             <img src="assets/images/logo.png" class="logo-icon me-2">
             <span class="brand-text">Galactic Threads</span>
         </a>
@@ -60,10 +60,13 @@ fetch("/api/session")
                 <p>Add new categories and manage existing ones.</p>
             </a>
 
-            <a href="admin-orders.html" class="list-group-item tron-list-item disabled">
-                <h4>Orders (Coming Soon)</h4>
-                <p>View and manage customer orders.</p>
+            <a href="admin-orders.html" class="list-group-item tron-list-item">
+                  <h4>Manage Orders</h4>
+                  <p>View and manage customer orders.</p>
             </a>
+
+
+            
 
             <a href="admin-reorder.html" class="list-group-item tron-list-item"> 
                 <h4>Reorder Products</h4> 

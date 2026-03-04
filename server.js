@@ -278,6 +278,18 @@ app.get("/api/products", (req, res) => {
   });
 });
 
+app.get("/api/products/:id", (req, res) => {
+    const productId = req.params.id;
+
+    db.get("SELECT * FROM products WHERE id = ?", [productId], (err, product) => {
+        if (err || !product) return res.json({ error: "Product not found" });
+
+        db.all("SELECT * FROM product_variants WHERE product_id = ?", [productId], (err, variants) => {
+            product.variants = variants;
+            res.json(product);
+        });
+    });
+});
 
 
 
@@ -408,22 +420,34 @@ app.get("/api/cart", (req, res) => {
   getOrCreateCart(email, (cart, err) => {
     if (err) return res.status(500).json({ message: "Database error" });
 
-    db.all(
-      `SELECT cart_items.id, products.id AS product_id, products.name, products.price, products.image, cart_items.quantity
-       FROM cart_items
-       JOIN products ON cart_items.product_id = products.id
-       WHERE cart_items.cart_id = ?`,
-      [cart.id],
-      (err2, items) => {
-        if (err2) return res.status(500).json({ message: "Database error" });
-        res.json(items);
-      }
-    );
+db.all(
+  `
+  SELECT 
+    cart_items.id,
+    products.id AS product_id,
+    products.name,
+    products.price,
+    products.image,
+    cart_items.quantity,
+    product_variants.size
+  FROM cart_items
+  JOIN products ON cart_items.product_id = products.id
+  JOIN product_variants ON cart_items.variant_id = product_variants.id
+  WHERE cart_items.cart_id = ?
+  `,
+  [cart.id],
+  (err2, items) => {
+    if (err2) return res.status(500).json({ message: "Database error" });
+    res.json(items);
+  }
+);
+
   });
 });
 
 app.post("/api/cart/add", (req, res) => {
-  const { email, product_id, quantity } = req.body;
+  const { email, product_id, variant_id, quantity } = req.body;
+
   if (!email || !product_id) return res.status(400).json({ message: "Missing fields" });
 
   const qty = quantity || 1;
@@ -432,8 +456,8 @@ app.post("/api/cart/add", (req, res) => {
     if (err) return res.status(500).json({ message: "Database error" });
 
     db.get(
-      "SELECT * FROM cart_items WHERE cart_id = ? AND product_id = ?",
-      [cart.id, product_id],
+      "SELECT * FROM cart_items WHERE cart_id = ? AND product_id = ? AND variant_id = ?",
+      [cart.id, product_id, variant_id],
       (err2, item) => {
         if (err2) return res.status(500).json({ message: "Database error" });
 
@@ -448,8 +472,9 @@ app.post("/api/cart/add", (req, res) => {
           );
         } else {
           db.run(
-            "INSERT INTO cart_items (cart_id, product_id, quantity) VALUES (?, ?, ?)",
-            [cart.id, product_id, qty],
+            "INSERT INTO cart_items (cart_id, product_id, variant_id, quantity) VALUES (?, ?, ?, ?)",
+            [cart.id, product_id, variant_id, qty],
+
             function (err3) {
               if (err3) return res.status(500).json({ message: "Database error" });
               res.json({ message: "Added to cart" });
@@ -510,7 +535,14 @@ app.post("/api/checkout", (req, res) => {
     if (err) return res.status(500).json({ message: "Database error" });
 
     db.all(
-      `SELECT cart_items.id, products.id AS product_id, products.price, cart_items.quantity
+      `SELECT 
+       cart_items.id, 
+       products.id AS product_id, 
+       products.name,
+       products.price, 
+       cart_items.quantity,
+       cart_items.variant_id
+
        FROM cart_items
        JOIN products ON cart_items.product_id = products.id
        WHERE cart_items.cart_id = ?`,
@@ -535,11 +567,12 @@ app.post("/api/checkout", (req, res) => {
             const orderId = this.lastID;
 
             const stmt = db.prepare(
-              "INSERT INTO order_items (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)"
+              "INSERT INTO order_items (order_id, product_id, variant_id, quantity, price) VALUES (?, ?, ?, ?, ?)"
+
             );
 
             items.forEach((item) => {
-              stmt.run(orderId, item.product_id, item.quantity, item.price);
+              stmt.run(orderId, item.product_id, item.variant_id, item.quantity, item.price);
             });
 
             stmt.finalize(() => {
@@ -592,17 +625,32 @@ app.put("/api/admin/orders/fulfill/:id", (req, res) => {
   );
 });
 
+app.get("/api/admin/order/:id/items", (req, res) => {
+  const sql = `
+  SELECT 
+    order_items.*, 
+    products.name,
+    product_variants.size
+  FROM order_items
+  JOIN products ON order_items.product_id = products.id
+  JOIN product_variants ON order_items.variant_id = product_variants.id
+  WHERE order_items.order_id = ?
+`;
+
+  db.all(sql, [req.params.id], (err, rows) => {
+    if (err) return res.status(500).json({ message: "Database error" });
+    res.json(rows);
+  });
+});
+
 // =========================
 // SERVER START
 // =========================
-// SAFE static file serving (root frontend)
-app.use(express.static(path.join(__dirname, "public")));
 
-app.use(
-  express.static(__dirname, {
-    extensions: ["html"]
-  })
-);
+// All API routes must be above this line
+
+app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static(__dirname, { extensions: ["html"] }));
 
 const PORT = 3000;
 app.listen(PORT, () =>

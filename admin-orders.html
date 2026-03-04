@@ -15,13 +15,17 @@
 </head>
 
 <body>
-
 <script>
-// Admin protection
-if (!localStorage.getItem("gt_admin")) {
-    window.location.href = "index.html";
-}
+fetch("/api/session")
+  .then(res => res.json())
+  .then(data => {
+    if (!data.loggedIn || !data.isAdmin) {
+      window.location.href = "index.html";
+    }
+  });
 </script>
+
+
 
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg tron-navbar">
@@ -90,6 +94,9 @@ async function loadOrders() {
                 <td>${new Date(order.created_at).toLocaleString()}</td>
                 <td>${order.status}</td>
                 <td>
+                    <button class="btn btn-sm btn-info me-2" onclick="viewItems(${order.id})">
+                        View Items
+                    </button>
                     <button class="btn btn-sm btn-success" onclick="markFulfilled(${order.id})">
                         Mark Fulfilled
                     </button>
@@ -97,6 +104,35 @@ async function loadOrders() {
             </tr>
         `;
     });
+}   // ← THIS closes loadOrders() properly
+
+// View items inside an order
+async function viewItems(orderId) {
+    const res = await fetch(`/api/admin/order/${orderId}/items`);
+    const items = await res.json();
+
+    const body = document.getElementById("itemsBody");
+    body.innerHTML = "";
+
+    if (items.length === 0) {
+        body.innerHTML = "<p>No items found for this order.</p>";
+    } else {
+        items.forEach(item => {
+            body.innerHTML += `
+  <div class="tron-item-row">
+    <strong>${item.name}</strong><br>
+    Size: ${item.size}<br>
+    Quantity: ${item.quantity}<br>
+    Price: £${item.price.toFixed(2)}
+    <hr>
+  </div>
+`;
+
+        });
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById("itemsModal"));
+    modal.show();
 }
 
 // Mark order as fulfilled
@@ -113,5 +149,24 @@ async function markFulfilled(orderId) {
 loadOrders();
 </script>
 
+
+
+
+<div class="modal fade" id="itemsModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content tron-modal">
+      <div class="modal-header">
+        <h5 class="modal-title">Order Items</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="itemsBody">
+        <!-- Items load here -->
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
+
+
 </html>
