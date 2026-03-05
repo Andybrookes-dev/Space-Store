@@ -462,3 +462,37 @@ nav.tron-navbar .nav-link:hover::after {
 .navbar-toggler-icon {
     filter: invert(100%) drop-shadow(0 0 6px #00eaff);
 }
+
+/* Dark theme for the admin order modal */
+#itemsModal .modal-content {
+    background-color: #0d0d0d !important;
+    color: #e6e6e6;
+    border: 1px solid #0ff;
+    box-shadow: 0 0 20px #0ff5;
+}
+
+/* Header styling for contrast */
+#itemsModal .modal-header {
+    background-color: #000;
+    border-bottom: 1px solid #0ff;
+}
+
+/* Make the close button visible on dark backgrounds */
+#itemsModal .btn-close {
+    filter: invert(100%);
+}
+
+/* Improve readability of item rows */
+.tron-item-row {
+    padding: 10px 0;
+    line-height: 1.6;
+}
+
+.tron-item-row strong {
+    color: #0ff;
+    font-size: 1.1rem;
+}
+
+.tron-item-row hr {
+    border-color: #0ff3;
+}
