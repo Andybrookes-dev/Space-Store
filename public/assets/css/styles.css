@@ -496,3 +496,59 @@ nav.tron-navbar .nav-link:hover::after {
 .tron-item-row hr {
     border-color: #0ff3;
 }
+
+/* =========================================================
+   ADMIN DASHBOARD PANEL
+   ========================================================= */
+
+.admin-section {
+    padding: 60px 20px;
+    background: #0a0f1f; /* matches your global dark theme */
+}
+
+.admin-section .section-title {
+    text-align: center;
+    font-size: 2.4rem;
+    margin-bottom: 35px;
+    text-shadow: 0 0 12px #00eaff;
+}
+
+/* List group container */
+.tron-list {
+    background: transparent;
+    border: none;
+}
+
+/* Individual admin dashboard cards */
+.tron-list-item {
+    background: rgba(0, 234, 255, 0.05);
+    border: 2px solid #00eaff33;
+    padding: 20px;
+    margin-bottom: 18px;
+    border-radius: 8px;
+    transition: 0.25s ease;
+    color: #b8eaff;
+    text-decoration: none;
+    display: block;
+}
+
+/* Hover glow effect */
+.tron-list-item:hover {
+    border-color: #00eaff;
+    box-shadow: 0 0 15px #00eaff55;
+    transform: translateY(-3px);
+}
+
+/* Headings inside admin cards */
+.tron-list-item h4 {
+    color: #00eaff;
+    margin-bottom: 6px;
+    text-shadow: 0 0 8px #00eaff;
+}
+
+/* Descriptions */
+.tron-list-item p {
+    color: #b8eaffcc;
+    margin: 0;
+    font-size: 0.95rem;
+}

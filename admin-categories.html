@@ -28,18 +28,43 @@ fetch("/api/session")
 </script>
 
 <!-- NAVBAR -->
-<nav class="navbar navbar-expand-lg tron-navbar">
+<!-- <nav class="navbar navbar-expand-lg tron-navbar">
     <div class="container-fluid">
         <a class="navbar-brand d-flex align-items-center" href="admin.html">
             <img src="assets/images/logo.png" class="logo-icon me-2">
             <span class="brand-text">Admin Panel</span>
         </a>
     </div>
+</nav> -->
+<nav class="navbar navbar-expand-lg tron-navbar">
+  <div class="container-fluid">
+
+    <a class="navbar-brand d-flex align-items-center" href="index.html">
+      <img src="assets/images/logo.png" class="logo-icon me-2">
+      <span class="brand-text">Galactic Threads</span>
+    </a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse justify-content-end" id="mainNav">
+      <ul class="navbar-nav mb-2 mb-lg-0">
+        <li class="nav-item"><a href="admin.html" class="nav-link tron-nav-link">Dashboard</a></li>
+        <li class="nav-item"><a href="admin-products.html" class="nav-link tron-nav-link">Products</a></li>
+        <li class="nav-item"><a href="admin-categories.html" class="nav-link tron-nav-link active">Categories</a></li>
+        <li class="nav-item"><a href="admin-orders.html" class="nav-link tron-nav-link">Orders</a></li>
+        <li class="nav-item"><a href="admin-reorder.html" class="nav-link tron-nav-link">Reorder</a></li>
+        <li class="nav-item"><a href="#" onclick="logout()" class="nav-link tron-nav-link">Logout</a></li>
+      </ul>
+    </div>
+
+  </div>
 </nav>
 
 <div class="tron-divider"></div>
 
-<section class="women-section">
+<section class="admin-section">
     <h2 class="section-title">Manage Categories</h2>
 
     <div class="container" style="max-width: 600px;">
