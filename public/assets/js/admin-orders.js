@@ -12,30 +12,35 @@ async function loadOrders() {
         if (!orders || orders.length === 0) {
             table.innerHTML = `
                 <tr>
-                    <td colspan="6" class="text-center text-light">No orders found.</td>
+                    <td colspan="8" class="text-center text-light">No orders found.</td>
                 </tr>
             `;
             return;
         }
 
         orders.forEach(order => {
-            table.innerHTML += `
-                <tr>
-                    <td>${order.id}</td>
-                    <td>${order.user_email}</td>
-                    <td>£${order.total.toFixed(2)}</td>
-                    <td>${new Date(order.created_at).toLocaleString()}</td>
-                    <td>${order.status}</td>
-                    <td>
-                        <button class="btn btn-sm btn-info me-2" onclick="viewItems(${order.id})">
-                            View Items
-                        </button>
-                        <button class="btn btn-sm btn-success" onclick="markFulfilled(${order.id})">
-                            Mark Fulfilled
-                        </button>
-                    </td>
-                </tr>
-            `;
+          table.innerHTML += `
+             <tr>
+        <td>${order.id}</td>
+        <td>${order.full_name}</td>
+        <td>${order.user_email}</td>
+        <td>
+            ${order.address_line1}<br>
+            ${order.address_line2 ? order.address_line2 + "<br>" : ""}
+            ${order.city}<br>
+            ${order.postcode}<br>
+            ${order.country}
+        </td>
+        <td>£${order.total.toFixed(2)}</td>
+        <td>${new Date(order.created_at).toLocaleString()}</td>
+        <td>${order.status}</td>
+        <td>
+            <button class="btn btn-sm btn-info me-2" onclick="viewItems(${order.id})">View Items</button>
+            <button class="btn btn-sm btn-success" onclick="markFulfilled(${order.id})">Mark Fulfilled</button>
+        </td>
+    </tr>
+`;
+  
         });
     } catch (err) {
         console.error("Error loading orders:", err);
