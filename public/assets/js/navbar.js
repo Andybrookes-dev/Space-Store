@@ -16,14 +16,13 @@ async function buildNavbar() {
   const staticLinks = [
     { name: "Home", href: "index.html" },
     { name: "Men", href: "men.html" },
-    { name: "Women", href: "women.html" },
-    { name: "Basket", href: "basket.html" }
+    { name: "Women", href: "women.html" }
   ];
 
   staticLinks.forEach(link => {
     navList.innerHTML += `
       <li class="nav-item">
-        <a class="nav-link" href="${link.href}">${link.name}</a>
+        <a class="nav-link tron-nav-link" href="${link.href}">${link.name}</a>
       </li>
     `;
   });
@@ -34,37 +33,45 @@ async function buildNavbar() {
   if (session.loggedIn) {
     if (greetingEl) greetingEl.textContent = `Hello, ${session.firstName}`;
 
+    // ⭐ Basket only when logged in
     navList.innerHTML += `
       <li class="nav-item">
-        <a class="nav-link" href="my-orders.html">My Orders</a>
+        <a class="nav-link tron-nav-link" href="basket.html">Basket</a>
+      </li>
+    `;
+
+    navList.innerHTML += `
+      <li class="nav-item">
+        <a class="nav-link tron-nav-link" href="my-orders.html">My Orders</a>
       </li>
     `;
 
     if (session.isAdmin) {
       navList.innerHTML += `
         <li class="nav-item">
-          <a class="nav-link" href="admin.html">Admin Panel</a>
+          <a class="nav-link tron-nav-link" href="admin.html">Admin Panel</a>
         </li>
       `;
     }
 
     navList.innerHTML += `
       <li class="nav-item">
-        <a class="nav-link" id="logoutBtn" style="cursor:pointer;">Logout</a>
+        <a class="nav-link tron-nav-link" id="logoutBtn" style="cursor:pointer;">Logout</a>
       </li>
     `;
 
   } else {
     navList.innerHTML += `
       <li class="nav-item">
-        <a class="nav-link" href="login.html">Login</a>
+        <a class="nav-link tron-nav-link" href="login.html">Login</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link" href="register.html">Register</a>
+        <a class="nav-link tron-nav-link" href="register.html">Register</a>
       </li>
     `;
   }
 }
+
 
 // -----------------------------
 // Logout Handler
