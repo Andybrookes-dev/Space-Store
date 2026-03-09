@@ -1,10 +1,11 @@
 {
   "name": "space-store",
   "version": "1.0.0",
-  "description": "",
-  "main": "cart.js",
+  "description": "Galactic Threads is a futuristic, Tron‑inspired e‑commerce platform featuring a glowing neon UI, dynamic product loading, a full shopping experience, and a complete admin panel for managing products, categories, and orders.",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "postinstall": "if [ \"$RENDER\" = \"true\" ]; then npm rebuild sqlite3 --build-from-source; fi"
   },
   "repository": {
     "type": "git",
@@ -25,5 +26,6 @@
     "express-session": "^1.19.0",
     "multer": "^2.0.2",
     "sqlite3": "^5.1.7"
-  }
+  },
+  "devDependencies": {}
 }
