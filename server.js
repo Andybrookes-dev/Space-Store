@@ -672,7 +672,7 @@ app.get("/api/admin/order/:id/items", (req, res) => {
 // =========================
 
 app.use(express.static(path.join(__dirname, "public")));
-app.use(express.static(__dirname, { extensions: ["html"] }));
+
 
 // =========================
 // START SERVER
