@@ -2,7 +2,7 @@
 // INITIAL SETUP
 // =========================
 
-require("./init-db.js");
+// require("./init-db.js");
 
 const express = require("express");
 const bcrypt = require("bcrypt");
