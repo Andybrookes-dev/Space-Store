@@ -48,7 +48,7 @@ app.use(express.json());
 
 app.use(
   session({
-    secret: "supersecretkey123",
+    secret: process.env.SESSION_SECRET || "dev-secret",
     resave: false,
     saveUninitialized: false,
     cookie: { secure: false }
@@ -668,15 +668,18 @@ app.get("/api/admin/order/:id/items", (req, res) => {
 });
 
 // =========================
-// SERVER START
+// STATIC FILES (Frontend)
 // =========================
-
-// All API routes must be above this line
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use(express.static(__dirname, { extensions: ["html"] }));
 
-const PORT = 3000;
-app.listen(PORT, () =>
-  console.log(`Server running on http://localhost:${PORT}`)
-);
+// =========================
+// START SERVER
+// =========================
+
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
