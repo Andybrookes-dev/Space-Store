@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin – Categories</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+
+<body>
+
+<!-- Admin Protection -->
+<script>
+fetch("/api/session")
+  .then(res => res.json())
+  .then(data => {
+    if (!data.loggedIn || !data.isAdmin) {
+      window.location.href = "index.html";
+    }
+  });
+</script>
+
+<!-- NAVBAR -->
+<!-- <nav class="navbar navbar-expand-lg tron-navbar">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="admin.html">
+            <img src="assets/images/logo.png" class="logo-icon me-2">
+            <span class="brand-text">Admin Panel</span>
+        </a>
+    </div>
+</nav> -->
+<nav class="navbar navbar-expand-lg tron-navbar">
+  <div class="container-fluid">
+
+    <a class="navbar-brand d-flex align-items-center" href="index.html">
+      <img src="assets/images/logo.png" class="logo-icon me-2">
+      <span class="brand-text">Galactic Threads</span>
+    </a>
+
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div class="collapse navbar-collapse justify-content-end" id="mainNav">
+      <ul class="navbar-nav mb-2 mb-lg-0">
+        <li class="nav-item"><a href="admin.html" class="nav-link tron-nav-link">Dashboard</a></li>
+        <li class="nav-item"><a href="admin-products.html" class="nav-link tron-nav-link">Products</a></li>
+        <li class="nav-item"><a href="admin-categories.html" class="nav-link tron-nav-link active">Categories</a></li>
+        <li class="nav-item"><a href="admin-orders.html" class="nav-link tron-nav-link">Orders</a></li>
+        <li class="nav-item"><a href="admin-reorder.html" class="nav-link tron-nav-link">Reorder</a></li>
+        <li class="nav-item"><a href="#" onclick="logout()" class="nav-link tron-nav-link">Logout</a></li>
+      </ul>
+    </div>
+
+  </div>
+</nav>
+
+<div class="tron-divider"></div>
+
+<section class="admin-section">
+    <h2 class="section-title">Manage Categories</h2>
+
+    <div class="container" style="max-width: 600px;">
+
+        <!-- Add Category Form -->
+        <form id="addCategoryForm" class="tron-form mb-4">
+            <label class="form-label">New Category Name</label>
+            <input type="text" id="categoryName" class="form-control" required>
+
+            <button class="checkout-btn mt-3 w-100">Add Category</button>
+        </form>
+
+        <!-- Category List -->
+        <table class="table table-dark table-striped table-bordered align-middle">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Category Name</th>
+                </tr>
+            </thead>
+            <tbody id="categoryTable"></tbody>
+        </table>
+
+        <div class="text-center mt-3">
+            <a href="admin.html" class="tron-link">← Back to Dashboard</a>
+        </div>
+
+    </div>
+</section>
+
+<footer class="tron-footer">
+    <div class="footer-content">
+        <p>© 2026 Galactic Threads</p>
+    </div>
+</footer>
+
+<!-- Load external JS -->
+<script src="/assets/js/admin-categories.js"></script>
+
+</body>
+</html>
