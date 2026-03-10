@@ -2,11 +2,9 @@
 // INITIAL SETUP
 // =========================
 
-// require("./init-db.js");
-
 const express = require("express");
 const bcrypt = require("bcrypt");
-const sqlite3 = require("sqlite3").verbose();
+const Database = require("better-sqlite3");
 const cors = require("cors");
 const path = require("path");
 const session = require("express-session");
@@ -14,9 +12,13 @@ const fs = require("fs");
 const multer = require("multer");
 
 const app = express();
-const db = new sqlite3.Database("./db.sqlite");
 
+// Use your SQLite file
+const db = new Database("./db.sqlite");
+
+// Log DB path for debugging
 console.log("DB path:", path.resolve("./db.sqlite"));
+
 
 // =========================
 // MULTER (FILE UPLOADS)
@@ -34,18 +36,18 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage });
 
+
 // =========================
 // MIDDLEWARE
 // =========================
 
 app.use(cors());
 
-// IMPORTANT: allow FormData + normal forms
+// Allow JSON + form submissions
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-
-
+// Sessions
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "dev-secret",
@@ -55,17 +57,20 @@ app.use(
   })
 );
 
+// Disable caching for dynamic routes
 app.use((req, res, next) => {
   res.setHeader("Cache-Control", "no-store");
   next();
 });
 
 
+
 // =========================
-// DATABASE SCHEMA
+// DATABASE SCHEMA (better-sqlite3)
 // =========================
 
-db.run(`
+// USERS
+db.prepare(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     firstName TEXT,
@@ -74,16 +79,20 @@ db.run(`
     password TEXT,
     isAdmin INTEGER DEFAULT 0
   )
-`);
+`).run();
 
-db.run(`
+
+// CATEGORIES
+db.prepare(`
   CREATE TABLE IF NOT EXISTS categories (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT UNIQUE NOT NULL
   )
-`);
+`).run();
 
-db.run(`
+
+// PRODUCTS
+db.prepare(`
   CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL,
@@ -92,18 +101,35 @@ db.run(`
     image TEXT,
     category_id INTEGER,
     active INTEGER DEFAULT 1,
+    display_order INTEGER DEFAULT 0,
     FOREIGN KEY (category_id) REFERENCES categories(id)
   )
-`);
+`).run();
 
-db.run(`
+
+// PRODUCT VARIANTS (your Option A)
+db.prepare(`
+  CREATE TABLE IF NOT EXISTS product_variants (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_id INTEGER NOT NULL,
+    size TEXT NOT NULL,
+    stock INTEGER DEFAULT 0,
+    FOREIGN KEY (product_id) REFERENCES products(id)
+  )
+`).run();
+
+
+// CARTS
+db.prepare(`
   CREATE TABLE IF NOT EXISTS carts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_email TEXT NOT NULL
   )
-`);
+`).run();
 
-db.run(`
+
+// CART ITEMS
+db.prepare(`
   CREATE TABLE IF NOT EXISTS cart_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     cart_id INTEGER NOT NULL,
@@ -114,46 +140,64 @@ db.run(`
     FOREIGN KEY (product_id) REFERENCES products(id),
     FOREIGN KEY (variant_id) REFERENCES product_variants(id)
   )
-`);
+`).run();
 
 
-db.run(`
+// ORDERS (your Option A — full address fields)
+db.prepare(`
   CREATE TABLE IF NOT EXISTS orders (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_email TEXT NOT NULL,
     total REAL NOT NULL,
+    full_name TEXT,
+    address_line1 TEXT,
+    address_line2 TEXT,
+    city TEXT,
+    postcode TEXT,
+    country TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     status TEXT DEFAULT 'Pending'
   )
-`);
+`).run();
 
-db.run(`
+
+// ORDER ITEMS
+db.prepare(`
   CREATE TABLE IF NOT EXISTS order_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     order_id INTEGER NOT NULL,
     product_id INTEGER NOT NULL,
+    variant_id INTEGER,
     quantity INTEGER NOT NULL,
     price REAL NOT NULL,
     FOREIGN KEY (order_id) REFERENCES orders(id),
-    FOREIGN KEY (product_id) REFERENCES products(id)
+    FOREIGN KEY (product_id) REFERENCES products(id),
+    FOREIGN KEY (variant_id) REFERENCES product_variants(id)
   )
-`);
+`).run();
+
 
 // =========================
 // HELPERS
 // =========================
 
-function getOrCreateCart(email, callback) {
-  db.get("SELECT * FROM carts WHERE user_email = ?", [email], (err, cart) => {
-    if (err) return callback(null, err);
-    if (cart) return callback(cart, null);
+function getOrCreateCart(email) {
+  const existing = db.prepare(
+    "SELECT * FROM carts WHERE user_email = ?"
+  ).get(email);
 
-    db.run("INSERT INTO carts (user_email) VALUES (?)", [email], function (err2) {
-      if (err2) return callback(null, err2);
-      callback({ id: this.lastID, user_email: email }, null);
-    });
-  });
+  if (existing) return existing;
+
+  const info = db.prepare(
+    "INSERT INTO carts (user_email) VALUES (?)"
+  ).run(email);
+
+  return {
+    id: info.lastInsertRowid,
+    user_email: email
+  };
 }
+
 
 // =========================
 // AUTH ROUTES
@@ -168,25 +212,35 @@ app.post("/api/register", (req, res) => {
 
   const hashedPassword = bcrypt.hashSync(password, 10);
 
-  db.run(
-    `INSERT INTO users (firstName, lastName, email, password)
-     VALUES (?, ?, ?, ?)`,
-    [firstName, lastName, email, hashedPassword],
-    function (err) {
-      if (err) return res.status(400).json({ message: "Registration failed." });
-      res.json({ message: "Registration successful!" });
-    }
-  );
+  try {
+    db.prepare(
+      `INSERT INTO users (firstName, lastName, email, password)
+       VALUES (?, ?, ?, ?)`
+    ).run(firstName, lastName, email, hashedPassword);
+
+    res.json({ message: "Registration successful!" });
+  } catch (err) {
+    console.error("Registration error:", err);
+    res.status(400).json({ message: "Registration failed." });
+  }
 });
 
-app.post("/api/login", (req, res) => {
+app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
 
-  db.get("SELECT * FROM users WHERE email = ?", [email], async (err, user) => {
-    if (err || !user) return res.status(400).json({ message: "Invalid credentials" });
+  try {
+    const user = db.prepare(
+      "SELECT * FROM users WHERE email = ?"
+    ).get(email);
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
     const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(400).json({ message: "Invalid credentials" });
+    if (!match) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
 
     req.session.user = {
       id: user.id,
@@ -200,7 +254,10 @@ app.post("/api/login", (req, res) => {
       firstName: user.firstName,
       isAdmin: user.isAdmin
     });
-  });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
 });
 
 app.get("/api/session", (req, res) => {
@@ -224,36 +281,47 @@ app.post("/api/logout", (req, res) => {
 // =========================
 
 app.get("/api/admin/categories", (req, res) => {
-  db.all("SELECT * FROM categories", [], (err, rows) => {
-    if (err) return res.status(500).json({ message: "Database error" });
+  try {
+    const rows = db.prepare("SELECT * FROM categories").all();
     res.json(rows);
-  });
+  } catch (err) {
+    console.error("Admin categories error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
 });
 
 app.get("/api/categories", (req, res) => {
-  db.all("SELECT * FROM categories", [], (err, rows) => {
-    if (err) return res.status(500).json({ message: "Database error" });
+  try {
+    const rows = db.prepare("SELECT * FROM categories").all();
     res.json(rows);
-  });
+  } catch (err) {
+    console.error("Categories error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
 });
 
 app.post("/api/admin/category", (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ message: "Category name required" });
 
-  db.run("INSERT INTO categories (name) VALUES (?)", [name], function (err) {
-    if (err) return res.status(400).json({ message: "Category already exists" });
-    res.json({ message: "Category added", id: this.lastID });
-  });
+  try {
+    const info = db.prepare(
+      "INSERT INTO categories (name) VALUES (?)"
+    ).run(name);
+
+    res.json({ message: "Category added", id: info.lastInsertRowid });
+  } catch (err) {
+    console.error("Add category error:", err);
+    res.status(400).json({ message: "Category already exists" });
+  }
 });
+
 
 // =========================
 // PRODUCT ROUTES
 // =========================
 
-// =========================
-// PRODUCT ROUTES (CLEAN + ORDERED)
-// =========================
+// Public: all products (ordered)
 app.get("/api/products", (req, res) => {
   const sql = `
     SELECT 
@@ -271,30 +339,39 @@ app.get("/api/products", (req, res) => {
     ORDER BY products.display_order ASC, products.id ASC
   `;
 
-  db.all(sql, [], (err, rows) => {
-    if (err) {
-      console.error("Error fetching products:", err);
-      return res.status(500).json({ error: "Database error" });
+  try {
+    const rows = db.prepare(sql).all();
+    res.json(rows);
+  } catch (err) {
+    console.error("Error fetching products:", err);
+    res.status(500).json({ error: "Database error" });
+  }
+});
+
+// Public: single product + variants
+app.get("/api/products/:id", (req, res) => {
+  const productId = req.params.id;
+
+  try {
+    const product = db.prepare(
+      "SELECT * FROM products WHERE id = ?"
+    ).get(productId);
+
+    if (!product) {
+      return res.json({ error: "Product not found" });
     }
 
-    res.json(rows);
-  });
+    const variants = db.prepare(
+      "SELECT * FROM product_variants WHERE product_id = ?"
+    ).all(productId);
+
+    product.variants = variants;
+    res.json(product);
+  } catch (err) {
+    console.error("Single product error:", err);
+    res.status(500).json({ error: "Database error" });
+  }
 });
-
-app.get("/api/products/:id", (req, res) => {
-    const productId = req.params.id;
-
-    db.get("SELECT * FROM products WHERE id = ?", [productId], (err, product) => {
-        if (err || !product) return res.json({ error: "Product not found" });
-
-        db.all("SELECT * FROM product_variants WHERE product_id = ?", [productId], (err, variants) => {
-            product.variants = variants;
-            res.json(product);
-        });
-    });
-});
-
-
 
 // Admin: all products (unsorted, newest first)
 app.get("/api/admin/products", (req, res) => {
@@ -304,10 +381,14 @@ app.get("/api/admin/products", (req, res) => {
     LEFT JOIN categories ON products.category_id = categories.id
     ORDER BY products.id DESC
   `;
-  db.all(query, [], (err, rows) => {
-    if (err) return res.status(500).json({ message: "Database error" });
+
+  try {
+    const rows = db.prepare(query).all();
     res.json(rows);
-  });
+  } catch (err) {
+    console.error("Admin products error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
 });
 
 // Admin: reorder products (drag & drop)
@@ -318,16 +399,22 @@ app.put("/api/products/reorder", (req, res) => {
     return res.status(400).json({ success: false, message: "Invalid order format" });
   }
 
-  const stmt = db.prepare("UPDATE products SET display_order = ? WHERE id = ?");
+  try {
+    const stmt = db.prepare("UPDATE products SET display_order = ? WHERE id = ?");
 
-  order.forEach((productId, index) => {
-    stmt.run(index, productId);
-  });
+    const transaction = db.transaction((ids) => {
+      ids.forEach((productId, index) => {
+        stmt.run(index, productId);
+      });
+    });
 
-  stmt.finalize(err => {
-    if (err) return res.status(500).json({ success: false });
+    transaction(order);
+
     res.json({ success: true });
-  });
+  } catch (err) {
+    console.error("Reorder products error:", err);
+    res.status(500).json({ success: false });
+  }
 });
 
 // Admin: single product
@@ -338,10 +425,14 @@ app.get("/api/product/:id", (req, res) => {
     LEFT JOIN categories ON products.category_id = categories.id
     WHERE products.id = ?
   `;
-  db.get(query, [req.params.id], (err, row) => {
-    if (err) return res.status(500).json({ message: "Database error" });
+
+  try {
+    const row = db.prepare(query).get(req.params.id);
     res.json(row);
-  });
+  } catch (err) {
+    console.error("Admin single product error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
 });
 
 // Admin: add product
@@ -352,19 +443,23 @@ app.post("/api/admin/product", upload.single("imageFile"), (req, res) => {
     ? `assets/images/products/${req.file.filename}`
     : req.body.image;
 
-  db.get("SELECT MAX(display_order) AS maxOrder FROM products", (err, row) => {
+  try {
+    const row = db.prepare(
+      "SELECT MAX(display_order) AS maxOrder FROM products"
+    ).get();
+
     const nextOrder = (row?.maxOrder ?? 0) + 1;
 
-    db.run(
+    const info = db.prepare(
       `INSERT INTO products (name, price, description, image, category_id, display_order)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [name, price, description, image, category_id, nextOrder],
-      function (err) {
-        if (err) return res.status(500).json({ message: "Database error" });
-        res.json({ message: "Product added", id: this.lastID });
-      }
-    );
-  });
+       VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(name, price, description, image, category_id, nextOrder);
+
+    res.json({ message: "Product added", id: info.lastInsertRowid });
+  } catch (err) {
+    console.error("Add product error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
 });
 
 // Admin: update product
@@ -375,41 +470,50 @@ app.put("/api/admin/product/:id", upload.single("imageFile"), (req, res) => {
     ? `assets/images/products/${req.file.filename}`
     : req.body.image;
 
-  db.run(
-    `UPDATE products
-     SET name = ?, price = ?, description = ?, image = ?, category_id = ?, active = ?
-     WHERE id = ?`,
-    [name, price, description, image, category_id, active, req.params.id],
-    function (err) {
-      if (err) return res.status(500).json({ message: "Database error" });
-      res.json({ message: "Product updated" });
-    }
-  );
+  try {
+    db.prepare(
+      `UPDATE products
+       SET name = ?, price = ?, description = ?, image = ?, category_id = ?, active = ?
+       WHERE id = ?`
+    ).run(name, price, description, image, category_id, active, req.params.id);
+
+    res.json({ message: "Product updated" });
+  } catch (err) {
+    console.error("Update product error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
 });
 
 // Admin: HARD DELETE
 app.delete("/api/admin/product/:id", (req, res) => {
   const id = req.params.id;
 
-  db.get("SELECT image FROM products WHERE id = ?", [id], (err, row) => {
-    if (err) return res.status(500).json({ message: "Database error" });
-    if (!row) return res.status(404).json({ message: "Product not found" });
+  try {
+    const row = db.prepare(
+      "SELECT image FROM products WHERE id = ?"
+    ).get(id);
+
+    if (!row) {
+      return res.status(404).json({ message: "Product not found" });
+    }
 
     const imagePath = row.image;
 
-    db.run("DELETE FROM products WHERE id = ?", [id], function (err) {
-      if (err) return res.status(500).json({ message: "Failed to delete product" });
+    db.prepare("DELETE FROM products WHERE id = ?").run(id);
 
-      if (imagePath && fs.existsSync(imagePath)) {
-        fs.unlink(imagePath, (err) => {
-          if (err) console.log("Failed to delete image:", err);
-        });
-      }
+    if (imagePath && fs.existsSync(imagePath)) {
+      fs.unlink(imagePath, (err) => {
+        if (err) console.log("Failed to delete image:", err);
+      });
+    }
 
-      res.json({ message: "Product deleted successfully" });
-    });
-  });
+    res.json({ message: "Product deleted successfully" });
+  } catch (err) {
+    console.error("Delete product error:", err);
+    res.status(500).json({ message: "Failed to delete product" });
+  }
 });
+
 
 
 // =========================
@@ -420,73 +524,65 @@ app.get("/api/cart", (req, res) => {
   const email = req.query.email;
   if (!email) return res.status(400).json({ message: "Email required" });
 
-  getOrCreateCart(email, (cart, err) => {
-    if (err) return res.status(500).json({ message: "Database error" });
+  try {
+    const cart = getOrCreateCart(email);
 
-db.all(
-  `
-  SELECT 
-    cart_items.id,
-    products.id AS product_id,
-    products.name,
-    products.price,
-    products.image,
-    cart_items.quantity,
-    product_variants.size
-  FROM cart_items
-  JOIN products ON cart_items.product_id = products.id
-  JOIN product_variants ON cart_items.variant_id = product_variants.id
-  WHERE cart_items.cart_id = ?
-  `,
-  [cart.id],
-  (err2, items) => {
-    if (err2) return res.status(500).json({ message: "Database error" });
+    const sql = `
+      SELECT 
+        cart_items.id,
+        products.id AS product_id,
+        products.name,
+        products.price,
+        products.image,
+        cart_items.quantity,
+        product_variants.size
+      FROM cart_items
+      JOIN products ON cart_items.product_id = products.id
+      JOIN product_variants ON cart_items.variant_id = product_variants.id
+      WHERE cart_items.cart_id = ?
+    `;
+
+    const items = db.prepare(sql).all(cart.id);
     res.json(items);
+  } catch (err) {
+    console.error("Get cart error:", err);
+    res.status(500).json({ message: "Database error" });
   }
-);
-
-  });
 });
 
 app.post("/api/cart/add", (req, res) => {
   const { email, product_id, variant_id, quantity } = req.body;
 
-  if (!email || !product_id) return res.status(400).json({ message: "Missing fields" });
+  if (!email || !product_id) {
+    return res.status(400).json({ message: "Missing fields" });
+  }
 
   const qty = quantity || 1;
 
-  getOrCreateCart(email, (cart, err) => {
-    if (err) return res.status(500).json({ message: "Database error" });
+  try {
+    const cart = getOrCreateCart(email);
 
-    db.get(
-      "SELECT * FROM cart_items WHERE cart_id = ? AND product_id = ? AND variant_id = ?",
-      [cart.id, product_id, variant_id],
-      (err2, item) => {
-        if (err2) return res.status(500).json({ message: "Database error" });
+    const existing = db.prepare(
+      "SELECT * FROM cart_items WHERE cart_id = ? AND product_id = ? AND variant_id = ?"
+    ).get(cart.id, product_id, variant_id);
 
-        if (item) {
-          db.run(
-            "UPDATE cart_items SET quantity = quantity + ? WHERE id = ?",
-            [qty, item.id],
-            function (err3) {
-              if (err3) return res.status(500).json({ message: "Database error" });
-              res.json({ message: "Cart updated" });
-            }
-          );
-        } else {
-          db.run(
-            "INSERT INTO cart_items (cart_id, product_id, variant_id, quantity) VALUES (?, ?, ?, ?)",
-            [cart.id, product_id, variant_id, qty],
+    if (existing) {
+      db.prepare(
+        "UPDATE cart_items SET quantity = quantity + ? WHERE id = ?"
+      ).run(qty, existing.id);
 
-            function (err3) {
-              if (err3) return res.status(500).json({ message: "Database error" });
-              res.json({ message: "Added to cart" });
-            }
-          );
-        }
-      }
-    );
-  });
+      return res.json({ message: "Cart updated" });
+    } else {
+      db.prepare(
+        "INSERT INTO cart_items (cart_id, product_id, variant_id, quantity) VALUES (?, ?, ?, ?)"
+      ).run(cart.id, product_id, variant_id, qty);
+
+      return res.json({ message: "Added to cart" });
+    }
+  } catch (err) {
+    console.error("Add to cart error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
 });
 
 app.put("/api/cart/update", (req, res) => {
@@ -495,36 +591,49 @@ app.put("/api/cart/update", (req, res) => {
     return res.status(400).json({ message: "Missing fields" });
   }
 
-  db.run(
-    "UPDATE cart_items SET quantity = ? WHERE id = ?",
-    [quantity, item_id],
-    function (err) {
-      if (err) return res.status(500).json({ message: "Database error" });
-      res.json({ message: "Quantity updated" });
-    }
-  );
+  try {
+    db.prepare(
+      "UPDATE cart_items SET quantity = ? WHERE id = ?"
+    ).run(quantity, item_id);
+
+    res.json({ message: "Quantity updated" });
+  } catch (err) {
+    console.error("Update cart quantity error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
 });
 
 app.delete("/api/cart/remove/:id", (req, res) => {
-  db.run("DELETE FROM cart_items WHERE id = ?", [req.params.id], function (err) {
-    if (err) return res.status(500).json({ message: "Database error" });
+  try {
+    db.prepare(
+      "DELETE FROM cart_items WHERE id = ?"
+    ).run(req.params.id);
+
     res.json({ message: "Item removed" });
-  });
+  } catch (err) {
+    console.error("Remove cart item error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
 });
 
 app.delete("/api/cart/clear", (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ message: "Email required" });
 
-  getOrCreateCart(email, (cart, err) => {
-    if (err) return res.status(500).json({ message: "Database error" });
+  try {
+    const cart = getOrCreateCart(email);
 
-    db.run("DELETE FROM cart_items WHERE cart_id = ?", [cart.id], function (err2) {
-      if (err2) return res.status(500).json({ message: "Database error" });
-      res.json({ message: "Cart cleared" });
-    });
-  });
+    db.prepare(
+      "DELETE FROM cart_items WHERE cart_id = ?"
+    ).run(cart.id);
+
+    res.json({ message: "Cart cleared" });
+  } catch (err) {
+    console.error("Clear cart error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
 });
+
 
 // =========================
 // ORDER ROUTES
@@ -543,10 +652,10 @@ app.post("/api/checkout", (req, res) => {
 
   if (!email) return res.status(400).json({ message: "Email required" });
 
-  getOrCreateCart(email, (cart, err) => {
-    if (err) return res.status(500).json({ message: "Database error" });
+  try {
+    const cart = getOrCreateCart(email);
 
-    db.all(
+    const items = db.prepare(
       `SELECT 
          cart_items.id, 
          products.id AS product_id, 
@@ -556,116 +665,131 @@ app.post("/api/checkout", (req, res) => {
          cart_items.variant_id
        FROM cart_items
        JOIN products ON cart_items.product_id = products.id
-       WHERE cart_items.cart_id = ?`,
-      [cart.id],
-      (err2, items) => {
-        if (err2) return res.status(500).json({ message: "Database error" });
-        if (items.length === 0) {
-          return res.status(400).json({ message: "Cart is empty" });
-        }
+       WHERE cart_items.cart_id = ?`
+    ).all(cart.id);
 
-        const total = items.reduce(
-          (sum, item) => sum + item.price * item.quantity,
-          0
-        );
+    if (items.length === 0) {
+      return res.status(400).json({ message: "Cart is empty" });
+    }
 
-        db.run(
-          `INSERT INTO orders 
-             (user_email, total, full_name, address_line1, address_line2, city, postcode, country)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            email,
-            total,
-            fullName,
-            address_line1,
-            address_line2,
-            city,
-            postcode,
-            country
-          ],
-          function (err3) {
-            if (err3) return res.status(500).json({ message: "Database error" });
-
-            const orderId = this.lastID;
-
-            const stmt = db.prepare(
-              `INSERT INTO order_items 
-                 (order_id, product_id, variant_id, quantity, price)
-               VALUES (?, ?, ?, ?, ?)`
-            );
-
-            items.forEach((item) => {
-              stmt.run(orderId, item.product_id, item.variant_id, item.quantity, item.price);
-            });
-
-            stmt.finalize(() => {
-              db.run(
-                "DELETE FROM cart_items WHERE cart_id = ?",
-                [cart.id],
-                () => {
-                  res.json({ message: "Order placed", orderId });
-                }
-              );
-            });
-          }
-        );
-      }
+    const total = items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
     );
-  });
-});
 
+    const orderInfo = db.prepare(
+      `INSERT INTO orders 
+         (user_email, total, full_name, address_line1, address_line2, city, postcode, country)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      email,
+      total,
+      fullName,
+      address_line1,
+      address_line2,
+      city,
+      postcode,
+      country
+    );
+
+    const orderId = orderInfo.lastInsertRowid;
+
+    const insertItem = db.prepare(
+      `INSERT INTO order_items 
+         (order_id, product_id, variant_id, quantity, price)
+       VALUES (?, ?, ?, ?, ?)`
+    );
+
+    const insertItemsTransaction = db.transaction((items) => {
+      items.forEach((item) => {
+        insertItem.run(
+          orderId,
+          item.product_id,
+          item.variant_id,
+          item.quantity,
+          item.price
+        );
+      });
+    });
+
+    insertItemsTransaction(items);
+
+    db.prepare(
+      "DELETE FROM cart_items WHERE cart_id = ?"
+    ).run(cart.id);
+
+    res.json({ message: "Order placed", orderId });
+  } catch (err) {
+    console.error("Checkout error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
+});
 
 app.get("/api/orders", (req, res) => {
   const email = req.query.email;
   if (!email) return res.status(400).json({ message: "Email required" });
 
-  db.all(
-    "SELECT * FROM orders WHERE user_email = ? ORDER BY created_at DESC",
-    [email],
-    (err, rows) => {
-      if (err) return res.status(500).json({ message: "Database error" });
-      res.json(rows);
-    }
-  );
+  try {
+    const rows = db.prepare(
+      "SELECT * FROM orders WHERE user_email = ? ORDER BY created_at DESC"
+    ).all(email);
+
+    res.json(rows);
+  } catch (err) {
+    console.error("User orders error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
 });
 
 app.get("/api/admin/orders", (req, res) => {
-  db.all("SELECT * FROM orders ORDER BY created_at DESC", [], (err, rows) => {
-    if (err) return res.status(500).json({ message: "Database error" });
+  try {
+    const rows = db.prepare(
+      "SELECT * FROM orders ORDER BY created_at DESC"
+    ).all();
+
     res.json(rows);
-  });
+  } catch (err) {
+    console.error("Admin orders error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
 });
 
 app.put("/api/admin/orders/fulfill/:id", (req, res) => {
   const { id } = req.params;
 
-  db.run(
-    "UPDATE orders SET status = 'Fulfilled' WHERE id = ?",
-    [id],
-    function (err) {
-      if (err) return res.status(500).json({ message: "Database error" });
-      res.json({ message: "Order marked as fulfilled" });
-    }
-  );
+  try {
+    db.prepare(
+      "UPDATE orders SET status = 'Fulfilled' WHERE id = ?"
+    ).run(id);
+
+    res.json({ message: "Order marked as fulfilled" });
+  } catch (err) {
+    console.error("Fulfill order error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
 });
 
 app.get("/api/admin/order/:id/items", (req, res) => {
   const sql = `
-  SELECT 
-    order_items.*, 
-    products.name,
-    product_variants.size
-  FROM order_items
-  JOIN products ON order_items.product_id = products.id
-  JOIN product_variants ON order_items.variant_id = product_variants.id
-  WHERE order_items.order_id = ?
-`;
+    SELECT 
+      order_items.*, 
+      products.name,
+      product_variants.size
+    FROM order_items
+    JOIN products ON order_items.product_id = products.id
+    JOIN product_variants ON order_items.variant_id = product_variants.id
+    WHERE order_items.order_id = ?
+  `;
 
-  db.all(sql, [req.params.id], (err, rows) => {
-    if (err) return res.status(500).json({ message: "Database error" });
+  try {
+    const rows = db.prepare(sql).all(req.params.id);
     res.json(rows);
-  });
+  } catch (err) {
+    console.error("Admin order items error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
 });
+
 
 // =========================
 // STATIC FILES (Frontend)
@@ -673,16 +797,16 @@ app.get("/api/admin/order/:id/items", (req, res) => {
 
 app.use(express.static(path.join(__dirname, "public")));
 
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
 
 // =========================
 // START SERVER
 // =========================
 
-const PORT = process.env.PORT ||10000;
-
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
+const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

@@ -20,12 +20,11 @@
   "homepage": "https://github.com/Andybrookes-dev/Space-Store#readme",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "better-sqlite3": "^11.10.0",
     "body-parser": "^2.2.2",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
-    "multer": "^2.0.2",
-    "sqlite3": "^5.1.7"
-  },
-  "devDependencies": {}
+    "multer": "^2.0.2"
+  }
 }

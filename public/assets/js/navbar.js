@@ -49,7 +49,7 @@ async function buildNavbar() {
     if (session.isAdmin) {
       navList.innerHTML += `
         <li class="nav-item">
-          <a class="nav-link tron-nav-link" href="admin.html">Admin Panel</a>
+          <a class="nav-link tron-nav-link" href="/admin/admin.html">Admin Panel</a>
         </li>
       `;
     }
