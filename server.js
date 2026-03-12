@@ -22,6 +22,18 @@ const pool = new Pool({
 console.log("Using PostgreSQL via DATABASE_URL");
 
 
+function requireAdmin(req, res, next) {
+  if (
+    !req.session.user ||
+    !["superadmin", "admin"].includes(req.session.user.role)
+  ) {
+    return res.status(403).json({ message: "Not allowed" });
+  }
+  next();
+}
+
+
+
 // =========================
 // MULTER (FILE UPLOADS)
 // =========================
@@ -254,7 +266,7 @@ app.get("/api/session", (req, res) => {
 // CATEGORY ROUTES
 // =========================
 
-app.get("/api/admin/categories", async (req, res) => {
+app.get("/api/admin/categories", requireAdmin, async (req, res) => {
   try {
     const result = await pool.query("SELECT * FROM categories");
     res.json(result.rows);
@@ -274,7 +286,7 @@ app.get("/api/categories", async (req, res) => {
   }
 });
 
-app.post("/api/admin/category", async (req, res) => {
+app.post("/api/admin/category", requireAdmin, async (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ message: "Category name required" });
 
@@ -283,7 +295,6 @@ app.post("/api/admin/category", async (req, res) => {
       "INSERT INTO categories (name) VALUES ($1) RETURNING id",
       [name]
     );
-
     res.json({ message: "Category added", id: result.rows[0].id });
   } catch (err) {
     console.error("Add category error:", err);
@@ -351,8 +362,8 @@ app.get("/api/products/:id", async (req, res) => {
   }
 });
 
-// Admin: all products (unsorted, newest first)
-app.get("/api/admin/products", async (req, res) => {
+// Admin: all products (unsorted)
+app.get("/api/admin/products", requireAdmin, async (req, res) => {
   const query = `
     SELECT products.*, categories.name AS category
     FROM products
@@ -418,7 +429,7 @@ app.get("/api/product/:id", async (req, res) => {
 });
 
 // Admin: add product
-app.post("/api/admin/product", upload.single("imageFile"), async (req, res) => {
+app.post("/api/admin/product", requireAdmin, upload.single("imageFile"), async (req, res) => {
   const { name, price, description, category_id } = req.body;
 
   const image = req.file
@@ -447,7 +458,7 @@ app.post("/api/admin/product", upload.single("imageFile"), async (req, res) => {
 });
 
 // Admin: update product
-app.put("/api/admin/product/:id", upload.single("imageFile"), async (req, res) => {
+app.put("/api/admin/product/:id", requireAdmin, upload.single("imageFile"), async (req, res) => {
   const { name, price, description, category_id, active } = req.body;
 
   const image = req.file
@@ -470,7 +481,7 @@ app.put("/api/admin/product/:id", upload.single("imageFile"), async (req, res) =
 });
 
 // Admin: HARD DELETE
-app.delete("/api/admin/product/:id", async (req, res) => {
+app.delete("/api/admin/product/:id", requireAdmin, async (req, res) => {
   const id = req.params.id;
 
   try {
@@ -747,7 +758,7 @@ app.get("/api/orders", async (req, res) => {
   }
 });
 
-app.get("/api/admin/orders", async (req, res) => {
+app.get("/api/admin/orders", requireAdmin, async (req, res) => {
   try {
     const result = await pool.query(
       "SELECT * FROM orders ORDER BY created_at DESC"
@@ -760,7 +771,7 @@ app.get("/api/admin/orders", async (req, res) => {
   }
 });
 
-app.put("/api/admin/orders/fulfill/:id", async (req, res) => {
+app.put("/api/admin/orders/fulfill/:id", requireAdmin, async (req, res) => {
   const { id } = req.params;
 
   try {
@@ -776,7 +787,7 @@ app.put("/api/admin/orders/fulfill/:id", async (req, res) => {
   }
 });
 
-app.get("/api/admin/order/:id/items", async (req, res) => {
+app.get("/api/admin/order/:id/items", requireAdmin, async (req, res) => {
   const sql = `
     SELECT 
       order_items.*, 
