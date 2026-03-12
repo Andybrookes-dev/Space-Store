@@ -41,14 +41,15 @@
 <div class="tron-divider"></div>
 
 <script>
-fetch("/api/session")
-  .then(r => r.json())
-  .then(s => { if (!s.loggedIn || !s.isAdmin) window.location.href = "index.html"; });
+async function checkAdminAccess() {
+    const res = await fetch("/api/session");
+    const session = await res.json();
 
-function logout() {
-  fetch("/api/logout", { method: "POST" })
-    .then(() => window.location.href = "index.html");
+    if (!session.loggedIn || !["superadmin", "admin"].includes(session.role)) {
+        window.location.href = "index.html";
+    }
 }
+checkAdminAccess();
 </script>
 
 <div class="container" style="max-width: 700px; padding-top: 30px;">

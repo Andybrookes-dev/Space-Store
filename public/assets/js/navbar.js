@@ -31,7 +31,8 @@ async function buildNavbar() {
   // USER-SPECIFIC LINKS
   // -----------------------------
   if (session.loggedIn) {
-    if (greetingEl) greetingEl.textContent = `Hello, ${session.firstName}`;
+    if (greetingEl) greetingEl.textContent = `Hello, ${session.fullName.split(" ")[0]}`;
+
 
     // ⭐ Basket only when logged in
     navList.innerHTML += `
@@ -46,7 +47,8 @@ async function buildNavbar() {
       </li>
     `;
 
-    if (session.isAdmin) {
+    if (["superadmin", "admin"].includes(session.role))
+   {
       navList.innerHTML += `
         <li class="nav-item">
           <a class="nav-link tron-nav-link" href="/admin/admin.html">Admin Panel</a>

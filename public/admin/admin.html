@@ -15,13 +15,13 @@
 </head>
 
 <body>
-
+<!-- // Admin protection using real session -->
 <script>
-// Admin protection using real session
+
 fetch("/api/session")
   .then(res => res.json())
   .then(data => {
-    if (!data.loggedIn || !data.isAdmin) {
+    if (!data.loggedIn || !["superadmin", "admin"].includes(data.role)) {
       window.location.href = "index.html";
     }
   });

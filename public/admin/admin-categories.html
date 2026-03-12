@@ -21,7 +21,7 @@
 fetch("/api/session")
   .then(res => res.json())
   .then(data => {
-    if (!data.loggedIn || !data.isAdmin) {
+    if (!data.loggedIn || !["superadmin", "admin"].includes(data.role)) {
       window.location.href = "index.html";
     }
   });
