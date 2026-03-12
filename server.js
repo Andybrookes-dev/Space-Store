@@ -4,7 +4,7 @@
 
 const express = require("express");
 const bcrypt = require("bcrypt");
-const Database = require("better-sqlite3");
+const { Pool } = require("pg");
 const cors = require("cors");
 const path = require("path");
 const session = require("express-session");
@@ -13,11 +13,13 @@ const multer = require("multer");
 
 const app = express();
 
-// Use your SQLite file
-const db = new Database("./db.sqlite");
+// PostgreSQL connection (Heroku)
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 
-// Log DB path for debugging
-console.log("DB path:", path.resolve("./db.sqlite"));
+console.log("Using PostgreSQL via DATABASE_URL");
 
 
 // =========================
@@ -42,12 +44,9 @@ const upload = multer({ storage });
 // =========================
 
 app.use(cors());
-
-// Allow JSON + form submissions
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Sessions
 app.use(
   session({
     secret: process.env.SESSION_SECRET || "dev-secret",
@@ -57,145 +56,140 @@ app.use(
   })
 );
 
-// Disable caching for dynamic routes
 app.use((req, res, next) => {
   res.setHeader("Cache-Control", "no-store");
   next();
 });
 
 
-
 // =========================
-// DATABASE SCHEMA (better-sqlite3)
+// DATABASE SCHEMA (Postgres)
 // =========================
 
-// USERS
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    firstName TEXT,
-    lastName TEXT,
-    email TEXT UNIQUE,
-    password TEXT,
-    isAdmin INTEGER DEFAULT 0
-  )
-`).run();
+async function initDb() {
+  // USERS
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      firstName TEXT,
+      lastName TEXT,
+      email TEXT UNIQUE,
+      password TEXT,
+      isAdmin INTEGER DEFAULT 0
+    )
+  `);
 
+  // CATEGORIES
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS categories (
+      id SERIAL PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL
+    )
+  `);
 
-// CATEGORIES
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE NOT NULL
-  )
-`).run();
+  // PRODUCTS
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS products (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      price REAL NOT NULL,
+      description TEXT,
+      image TEXT,
+      category_id INTEGER,
+      active INTEGER DEFAULT 1,
+      display_order INTEGER DEFAULT 0,
+      FOREIGN KEY (category_id) REFERENCES categories(id)
+    )
+  `);
 
+  // PRODUCT VARIANTS
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS product_variants (
+      id SERIAL PRIMARY KEY,
+      product_id INTEGER NOT NULL,
+      size TEXT NOT NULL,
+      stock INTEGER DEFAULT 0,
+      FOREIGN KEY (product_id) REFERENCES products(id)
+    )
+  `);
 
-// PRODUCTS
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS products (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    price REAL NOT NULL,
-    description TEXT,
-    image TEXT,
-    category_id INTEGER,
-    active INTEGER DEFAULT 1,
-    display_order INTEGER DEFAULT 0,
-    FOREIGN KEY (category_id) REFERENCES categories(id)
-  )
-`).run();
+  // CARTS
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS carts (
+      id SERIAL PRIMARY KEY,
+      user_email TEXT NOT NULL
+    )
+  `);
 
+  // CART ITEMS
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS cart_items (
+      id SERIAL PRIMARY KEY,
+      cart_id INTEGER NOT NULL,
+      product_id INTEGER NOT NULL,
+      variant_id INTEGER,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      FOREIGN KEY (cart_id) REFERENCES carts(id),
+      FOREIGN KEY (product_id) REFERENCES products(id),
+      FOREIGN KEY (variant_id) REFERENCES product_variants(id)
+    )
+  `);
 
-// PRODUCT VARIANTS (your Option A)
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS product_variants (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    product_id INTEGER NOT NULL,
-    size TEXT NOT NULL,
-    stock INTEGER DEFAULT 0,
-    FOREIGN KEY (product_id) REFERENCES products(id)
-  )
-`).run();
+  // ORDERS
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS orders (
+      id SERIAL PRIMARY KEY,
+      user_email TEXT NOT NULL,
+      total REAL NOT NULL,
+      full_name TEXT,
+      address_line1 TEXT,
+      address_line2 TEXT,
+      city TEXT,
+      postcode TEXT,
+      country TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      status TEXT DEFAULT 'Pending'
+    )
+  `);
 
+  // ORDER ITEMS
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS order_items (
+      id SERIAL PRIMARY KEY,
+      order_id INTEGER NOT NULL,
+      product_id INTEGER NOT NULL,
+      variant_id INTEGER,
+      quantity INTEGER NOT NULL,
+      price REAL NOT NULL,
+      FOREIGN KEY (order_id) REFERENCES orders(id),
+      FOREIGN KEY (product_id) REFERENCES products(id),
+      FOREIGN KEY (variant_id) REFERENCES product_variants(id)
+    )
+  `);
 
-// CARTS
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS carts (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_email TEXT NOT NULL
-  )
-`).run();
-
-
-// CART ITEMS
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS cart_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    cart_id INTEGER NOT NULL,
-    product_id INTEGER NOT NULL,
-    variant_id INTEGER,
-    quantity INTEGER NOT NULL DEFAULT 1,
-    FOREIGN KEY (cart_id) REFERENCES carts(id),
-    FOREIGN KEY (product_id) REFERENCES products(id),
-    FOREIGN KEY (variant_id) REFERENCES product_variants(id)
-  )
-`).run();
-
-
-// ORDERS (your Option A — full address fields)
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS orders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_email TEXT NOT NULL,
-    total REAL NOT NULL,
-    full_name TEXT,
-    address_line1 TEXT,
-    address_line2 TEXT,
-    city TEXT,
-    postcode TEXT,
-    country TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-    status TEXT DEFAULT 'Pending'
-  )
-`).run();
-
-
-// ORDER ITEMS
-db.prepare(`
-  CREATE TABLE IF NOT EXISTS order_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id INTEGER NOT NULL,
-    product_id INTEGER NOT NULL,
-    variant_id INTEGER,
-    quantity INTEGER NOT NULL,
-    price REAL NOT NULL,
-    FOREIGN KEY (order_id) REFERENCES orders(id),
-    FOREIGN KEY (product_id) REFERENCES products(id),
-    FOREIGN KEY (variant_id) REFERENCES product_variants(id)
-  )
-`).run();
+  console.log("Database schema ensured (CREATE TABLE IF NOT EXISTS).");
+}
 
 
 // =========================
 // HELPERS
 // =========================
 
-function getOrCreateCart(email) {
-  const existing = db.prepare(
-    "SELECT * FROM carts WHERE user_email = ?"
-  ).get(email);
+async function getOrCreateCart(email) {
+  const existingResult = await pool.query(
+    "SELECT * FROM carts WHERE user_email = $1",
+    [email]
+  );
+  const existing = existingResult.rows[0];
 
   if (existing) return existing;
 
-  const info = db.prepare(
-    "INSERT INTO carts (user_email) VALUES (?)"
-  ).run(email);
+  const insertResult = await pool.query(
+    "INSERT INTO carts (user_email) VALUES ($1) RETURNING id, user_email",
+    [email]
+  );
 
-  return {
-    id: info.lastInsertRowid,
-    user_email: email
-  };
+  return insertResult.rows[0];
 }
 
 
@@ -203,7 +197,7 @@ function getOrCreateCart(email) {
 // AUTH ROUTES
 // =========================
 
-app.post("/api/register", (req, res) => {
+app.post("/api/register", async (req, res) => {
   const { firstName, lastName, email, password } = req.body;
 
   if (!firstName || !lastName || !email || !password) {
@@ -213,10 +207,11 @@ app.post("/api/register", (req, res) => {
   const hashedPassword = bcrypt.hashSync(password, 10);
 
   try {
-    db.prepare(
+    await pool.query(
       `INSERT INTO users (firstName, lastName, email, password)
-       VALUES (?, ?, ?, ?)`
-    ).run(firstName, lastName, email, hashedPassword);
+       VALUES ($1, $2, $3, $4)`,
+      [firstName, lastName, email, hashedPassword]
+    );
 
     res.json({ message: "Registration successful!" });
   } catch (err) {
@@ -229,9 +224,11 @@ app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const user = db.prepare(
-      "SELECT * FROM users WHERE email = ?"
-    ).get(email);
+    const result = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
+    const user = result.rows[0];
 
     if (!user) {
       return res.status(400).json({ message: "Invalid credentials" });
@@ -244,15 +241,15 @@ app.post("/api/login", async (req, res) => {
 
     req.session.user = {
       id: user.id,
-      firstName: user.firstName,
+      firstName: user.firstname,
       email: user.email,
-      isAdmin: user.isAdmin
+      isAdmin: user.isadmin
     };
 
     res.json({
       message: "Login successful",
-      firstName: user.firstName,
-      isAdmin: user.isAdmin
+      firstName: user.firstname,
+      isAdmin: user.isadmin
     });
   } catch (err) {
     console.error("Login error:", err);
@@ -276,40 +273,42 @@ app.post("/api/logout", (req, res) => {
   req.session.destroy(() => res.json({ message: "Logged out" }));
 });
 
+
 // =========================
 // CATEGORY ROUTES
 // =========================
 
-app.get("/api/admin/categories", (req, res) => {
+app.get("/api/admin/categories", async (req, res) => {
   try {
-    const rows = db.prepare("SELECT * FROM categories").all();
-    res.json(rows);
+    const result = await pool.query("SELECT * FROM categories");
+    res.json(result.rows);
   } catch (err) {
     console.error("Admin categories error:", err);
     res.status(500).json({ message: "Database error" });
   }
 });
 
-app.get("/api/categories", (req, res) => {
+app.get("/api/categories", async (req, res) => {
   try {
-    const rows = db.prepare("SELECT * FROM categories").all();
-    res.json(rows);
+    const result = await pool.query("SELECT * FROM categories");
+    res.json(result.rows);
   } catch (err) {
     console.error("Categories error:", err);
     res.status(500).json({ message: "Database error" });
   }
 });
 
-app.post("/api/admin/category", (req, res) => {
+app.post("/api/admin/category", async (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ message: "Category name required" });
 
   try {
-    const info = db.prepare(
-      "INSERT INTO categories (name) VALUES (?)"
-    ).run(name);
+    const result = await pool.query(
+      "INSERT INTO categories (name) VALUES ($1) RETURNING id",
+      [name]
+    );
 
-    res.json({ message: "Category added", id: info.lastInsertRowid });
+    res.json({ message: "Category added", id: result.rows[0].id });
   } catch (err) {
     console.error("Add category error:", err);
     res.status(400).json({ message: "Category already exists" });
@@ -322,7 +321,7 @@ app.post("/api/admin/category", (req, res) => {
 // =========================
 
 // Public: all products (ordered)
-app.get("/api/products", (req, res) => {
+app.get("/api/products", async (req, res) => {
   const sql = `
     SELECT 
       products.id,
@@ -340,8 +339,8 @@ app.get("/api/products", (req, res) => {
   `;
 
   try {
-    const rows = db.prepare(sql).all();
-    res.json(rows);
+    const result = await pool.query(sql);
+    res.json(result.rows);
   } catch (err) {
     console.error("Error fetching products:", err);
     res.status(500).json({ error: "Database error" });
@@ -349,23 +348,26 @@ app.get("/api/products", (req, res) => {
 });
 
 // Public: single product + variants
-app.get("/api/products/:id", (req, res) => {
+app.get("/api/products/:id", async (req, res) => {
   const productId = req.params.id;
 
   try {
-    const product = db.prepare(
-      "SELECT * FROM products WHERE id = ?"
-    ).get(productId);
+    const productResult = await pool.query(
+      "SELECT * FROM products WHERE id = $1",
+      [productId]
+    );
+    const product = productResult.rows[0];
 
     if (!product) {
       return res.json({ error: "Product not found" });
     }
 
-    const variants = db.prepare(
-      "SELECT * FROM product_variants WHERE product_id = ?"
-    ).all(productId);
+    const variantsResult = await pool.query(
+      "SELECT * FROM product_variants WHERE product_id = $1",
+      [productId]
+    );
 
-    product.variants = variants;
+    product.variants = variantsResult.rows;
     res.json(product);
   } catch (err) {
     console.error("Single product error:", err);
@@ -374,7 +376,7 @@ app.get("/api/products/:id", (req, res) => {
 });
 
 // Admin: all products (unsorted, newest first)
-app.get("/api/admin/products", (req, res) => {
+app.get("/api/admin/products", async (req, res) => {
   const query = `
     SELECT products.*, categories.name AS category
     FROM products
@@ -383,8 +385,8 @@ app.get("/api/admin/products", (req, res) => {
   `;
 
   try {
-    const rows = db.prepare(query).all();
-    res.json(rows);
+    const result = await pool.query(query);
+    res.json(result.rows);
   } catch (err) {
     console.error("Admin products error:", err);
     res.status(500).json({ message: "Database error" });
@@ -392,43 +394,47 @@ app.get("/api/admin/products", (req, res) => {
 });
 
 // Admin: reorder products (drag & drop)
-app.put("/api/products/reorder", (req, res) => {
+app.put("/api/products/reorder", async (req, res) => {
   const { order } = req.body;
 
   if (!Array.isArray(order)) {
     return res.status(400).json({ success: false, message: "Invalid order format" });
   }
 
+  const client = await pool.connect();
   try {
-    const stmt = db.prepare("UPDATE products SET display_order = ? WHERE id = ?");
+    await client.query("BEGIN");
 
-    const transaction = db.transaction((ids) => {
-      ids.forEach((productId, index) => {
-        stmt.run(index, productId);
-      });
-    });
+    const stmt = "UPDATE products SET display_order = $1 WHERE id = $2";
 
-    transaction(order);
+    for (let index = 0; index < order.length; index++) {
+      const productId = order[index];
+      await client.query(stmt, [index, productId]);
+    }
 
+    await client.query("COMMIT");
     res.json({ success: true });
   } catch (err) {
+    await client.query("ROLLBACK");
     console.error("Reorder products error:", err);
     res.status(500).json({ success: false });
+  } finally {
+    client.release();
   }
 });
 
 // Admin: single product
-app.get("/api/product/:id", (req, res) => {
+app.get("/api/product/:id", async (req, res) => {
   const query = `
     SELECT products.*, categories.name AS category
     FROM products
     LEFT JOIN categories ON products.category_id = categories.id
-    WHERE products.id = ?
+    WHERE products.id = $1
   `;
 
   try {
-    const row = db.prepare(query).get(req.params.id);
-    res.json(row);
+    const result = await pool.query(query, [req.params.id]);
+    res.json(result.rows[0] || null);
   } catch (err) {
     console.error("Admin single product error:", err);
     res.status(500).json({ message: "Database error" });
@@ -436,7 +442,7 @@ app.get("/api/product/:id", (req, res) => {
 });
 
 // Admin: add product
-app.post("/api/admin/product", upload.single("imageFile"), (req, res) => {
+app.post("/api/admin/product", upload.single("imageFile"), async (req, res) => {
   const { name, price, description, category_id } = req.body;
 
   const image = req.file
@@ -444,18 +450,20 @@ app.post("/api/admin/product", upload.single("imageFile"), (req, res) => {
     : req.body.image;
 
   try {
-    const row = db.prepare(
+    const rowResult = await pool.query(
       "SELECT MAX(display_order) AS maxOrder FROM products"
-    ).get();
+    );
+    const maxOrder = rowResult.rows[0].maxorder;
+    const nextOrder = (maxOrder ?? 0) + 1;
 
-    const nextOrder = (row?.maxOrder ?? 0) + 1;
-
-    const info = db.prepare(
+    const insertResult = await pool.query(
       `INSERT INTO products (name, price, description, image, category_id, display_order)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    ).run(name, price, description, image, category_id, nextOrder);
+       VALUES ($1, $2, $3, $4, $5, $6)
+       RETURNING id`,
+      [name, price, description, image, category_id, nextOrder]
+    );
 
-    res.json({ message: "Product added", id: info.lastInsertRowid });
+    res.json({ message: "Product added", id: insertResult.rows[0].id });
   } catch (err) {
     console.error("Add product error:", err);
     res.status(500).json({ message: "Database error" });
@@ -463,7 +471,7 @@ app.post("/api/admin/product", upload.single("imageFile"), (req, res) => {
 });
 
 // Admin: update product
-app.put("/api/admin/product/:id", upload.single("imageFile"), (req, res) => {
+app.put("/api/admin/product/:id", upload.single("imageFile"), async (req, res) => {
   const { name, price, description, category_id, active } = req.body;
 
   const image = req.file
@@ -471,11 +479,12 @@ app.put("/api/admin/product/:id", upload.single("imageFile"), (req, res) => {
     : req.body.image;
 
   try {
-    db.prepare(
+    await pool.query(
       `UPDATE products
-       SET name = ?, price = ?, description = ?, image = ?, category_id = ?, active = ?
-       WHERE id = ?`
-    ).run(name, price, description, image, category_id, active, req.params.id);
+       SET name = $1, price = $2, description = $3, image = $4, category_id = $5, active = $6
+       WHERE id = $7`,
+      [name, price, description, image, category_id, active, req.params.id]
+    );
 
     res.json({ message: "Product updated" });
   } catch (err) {
@@ -485,13 +494,15 @@ app.put("/api/admin/product/:id", upload.single("imageFile"), (req, res) => {
 });
 
 // Admin: HARD DELETE
-app.delete("/api/admin/product/:id", (req, res) => {
+app.delete("/api/admin/product/:id", async (req, res) => {
   const id = req.params.id;
 
   try {
-    const row = db.prepare(
-      "SELECT image FROM products WHERE id = ?"
-    ).get(id);
+    const rowResult = await pool.query(
+      "SELECT image FROM products WHERE id = $1",
+      [id]
+    );
+    const row = rowResult.rows[0];
 
     if (!row) {
       return res.status(404).json({ message: "Product not found" });
@@ -499,7 +510,7 @@ app.delete("/api/admin/product/:id", (req, res) => {
 
     const imagePath = row.image;
 
-    db.prepare("DELETE FROM products WHERE id = ?").run(id);
+    await pool.query("DELETE FROM products WHERE id = $1", [id]);
 
     if (imagePath && fs.existsSync(imagePath)) {
       fs.unlink(imagePath, (err) => {
@@ -515,17 +526,16 @@ app.delete("/api/admin/product/:id", (req, res) => {
 });
 
 
-
 // =========================
 // CART ROUTES
 // =========================
 
-app.get("/api/cart", (req, res) => {
+app.get("/api/cart", async (req, res) => {
   const email = req.query.email;
   if (!email) return res.status(400).json({ message: "Email required" });
 
   try {
-    const cart = getOrCreateCart(email);
+    const cart = await getOrCreateCart(email);
 
     const sql = `
       SELECT 
@@ -539,18 +549,18 @@ app.get("/api/cart", (req, res) => {
       FROM cart_items
       JOIN products ON cart_items.product_id = products.id
       JOIN product_variants ON cart_items.variant_id = product_variants.id
-      WHERE cart_items.cart_id = ?
+      WHERE cart_items.cart_id = $1
     `;
 
-    const items = db.prepare(sql).all(cart.id);
-    res.json(items);
+    const itemsResult = await pool.query(sql, [cart.id]);
+    res.json(itemsResult.rows);
   } catch (err) {
     console.error("Get cart error:", err);
     res.status(500).json({ message: "Database error" });
   }
 });
 
-app.post("/api/cart/add", (req, res) => {
+app.post("/api/cart/add", async (req, res) => {
   const { email, product_id, variant_id, quantity } = req.body;
 
   if (!email || !product_id) {
@@ -560,22 +570,26 @@ app.post("/api/cart/add", (req, res) => {
   const qty = quantity || 1;
 
   try {
-    const cart = getOrCreateCart(email);
+    const cart = await getOrCreateCart(email);
 
-    const existing = db.prepare(
-      "SELECT * FROM cart_items WHERE cart_id = ? AND product_id = ? AND variant_id = ?"
-    ).get(cart.id, product_id, variant_id);
+    const existingResult = await pool.query(
+      "SELECT * FROM cart_items WHERE cart_id = $1 AND product_id = $2 AND variant_id = $3",
+      [cart.id, product_id, variant_id]
+    );
+    const existing = existingResult.rows[0];
 
     if (existing) {
-      db.prepare(
-        "UPDATE cart_items SET quantity = quantity + ? WHERE id = ?"
-      ).run(qty, existing.id);
+      await pool.query(
+        "UPDATE cart_items SET quantity = quantity + $1 WHERE id = $2",
+        [qty, existing.id]
+      );
 
       return res.json({ message: "Cart updated" });
     } else {
-      db.prepare(
-        "INSERT INTO cart_items (cart_id, product_id, variant_id, quantity) VALUES (?, ?, ?, ?)"
-      ).run(cart.id, product_id, variant_id, qty);
+      await pool.query(
+        "INSERT INTO cart_items (cart_id, product_id, variant_id, quantity) VALUES ($1, $2, $3, $4)",
+        [cart.id, product_id, variant_id, qty]
+      );
 
       return res.json({ message: "Added to cart" });
     }
@@ -585,16 +599,17 @@ app.post("/api/cart/add", (req, res) => {
   }
 });
 
-app.put("/api/cart/update", (req, res) => {
+app.put("/api/cart/update", async (req, res) => {
   const { item_id, quantity } = req.body;
   if (!item_id || quantity == null) {
     return res.status(400).json({ message: "Missing fields" });
   }
 
   try {
-    db.prepare(
-      "UPDATE cart_items SET quantity = ? WHERE id = ?"
-    ).run(quantity, item_id);
+    await pool.query(
+      "UPDATE cart_items SET quantity = $1 WHERE id = $2",
+      [quantity, item_id]
+    );
 
     res.json({ message: "Quantity updated" });
   } catch (err) {
@@ -603,11 +618,12 @@ app.put("/api/cart/update", (req, res) => {
   }
 });
 
-app.delete("/api/cart/remove/:id", (req, res) => {
+app.delete("/api/cart/remove/:id", async (req, res) => {
   try {
-    db.prepare(
-      "DELETE FROM cart_items WHERE id = ?"
-    ).run(req.params.id);
+    await pool.query(
+      "DELETE FROM cart_items WHERE id = $1",
+      [req.params.id]
+    );
 
     res.json({ message: "Item removed" });
   } catch (err) {
@@ -616,16 +632,17 @@ app.delete("/api/cart/remove/:id", (req, res) => {
   }
 });
 
-app.delete("/api/cart/clear", (req, res) => {
+app.delete("/api/cart/clear", async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ message: "Email required" });
 
   try {
-    const cart = getOrCreateCart(email);
+    const cart = await getOrCreateCart(email);
 
-    db.prepare(
-      "DELETE FROM cart_items WHERE cart_id = ?"
-    ).run(cart.id);
+    await pool.query(
+      "DELETE FROM cart_items WHERE cart_id = $1",
+      [cart.id]
+    );
 
     res.json({ message: "Cart cleared" });
   } catch (err) {
@@ -639,7 +656,7 @@ app.delete("/api/cart/clear", (req, res) => {
 // ORDER ROUTES
 // =========================
 
-app.post("/api/checkout", (req, res) => {
+app.post("/api/checkout", async (req, res) => {
   const {
     email,
     fullName,
@@ -652,10 +669,12 @@ app.post("/api/checkout", (req, res) => {
 
   if (!email) return res.status(400).json({ message: "Email required" });
 
-  try {
-    const cart = getOrCreateCart(email);
+  const client = await pool.connect();
 
-    const items = db.prepare(
+  try {
+    const cart = await getOrCreateCart(email);
+
+    const itemsResult = await client.query(
       `SELECT 
          cart_items.id, 
          products.id AS product_id, 
@@ -665,10 +684,14 @@ app.post("/api/checkout", (req, res) => {
          cart_items.variant_id
        FROM cart_items
        JOIN products ON cart_items.product_id = products.id
-       WHERE cart_items.cart_id = ?`
-    ).all(cart.id);
+       WHERE cart_items.cart_id = $1`,
+      [cart.id]
+    );
+
+    const items = itemsResult.rows;
 
     if (items.length === 0) {
+      client.release();
       return res.status(400).json({ message: "Cart is empty" });
     }
 
@@ -677,90 +700,98 @@ app.post("/api/checkout", (req, res) => {
       0
     );
 
-    const orderInfo = db.prepare(
+    await client.query("BEGIN");
+
+    const orderInfoResult = await client.query(
       `INSERT INTO orders 
          (user_email, total, full_name, address_line1, address_line2, city, postcode, country)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-    ).run(
-      email,
-      total,
-      fullName,
-      address_line1,
-      address_line2,
-      city,
-      postcode,
-      country
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING id`,
+      [
+        email,
+        total,
+        fullName,
+        address_line1,
+        address_line2,
+        city,
+        postcode,
+        country
+      ]
     );
 
-    const orderId = orderInfo.lastInsertRowid;
+    const orderId = orderInfoResult.rows[0].id;
 
-    const insertItem = db.prepare(
-      `INSERT INTO order_items 
-         (order_id, product_id, variant_id, quantity, price)
-       VALUES (?, ?, ?, ?, ?)`
+    const insertItemSql = `
+      INSERT INTO order_items 
+        (order_id, product_id, variant_id, quantity, price)
+      VALUES ($1, $2, $3, $4, $5)
+    `;
+
+    for (const item of items) {
+      await client.query(insertItemSql, [
+        orderId,
+        item.product_id,
+        item.variant_id,
+        item.quantity,
+        item.price
+      ]);
+    }
+
+    await client.query(
+      "DELETE FROM cart_items WHERE cart_id = $1",
+      [cart.id]
     );
 
-    const insertItemsTransaction = db.transaction((items) => {
-      items.forEach((item) => {
-        insertItem.run(
-          orderId,
-          item.product_id,
-          item.variant_id,
-          item.quantity,
-          item.price
-        );
-      });
-    });
-
-    insertItemsTransaction(items);
-
-    db.prepare(
-      "DELETE FROM cart_items WHERE cart_id = ?"
-    ).run(cart.id);
+    await client.query("COMMIT");
 
     res.json({ message: "Order placed", orderId });
   } catch (err) {
+    await client.query("ROLLBACK");
     console.error("Checkout error:", err);
     res.status(500).json({ message: "Database error" });
+  } finally {
+    client.release();
   }
 });
 
-app.get("/api/orders", (req, res) => {
+app.get("/api/orders", async (req, res) => {
   const email = req.query.email;
   if (!email) return res.status(400).json({ message: "Email required" });
 
   try {
-    const rows = db.prepare(
-      "SELECT * FROM orders WHERE user_email = ? ORDER BY created_at DESC"
-    ).all(email);
+    const result = await pool.query(
+      "SELECT * FROM orders WHERE user_email = $1 ORDER BY created_at DESC",
+      [email]
+    );
 
-    res.json(rows);
+    res.json(result.rows);
   } catch (err) {
     console.error("User orders error:", err);
     res.status(500).json({ message: "Database error" });
   }
 });
 
-app.get("/api/admin/orders", (req, res) => {
+app.get("/api/admin/orders", async (req, res) => {
   try {
-    const rows = db.prepare(
+    const result = await pool.query(
       "SELECT * FROM orders ORDER BY created_at DESC"
-    ).all();
+    );
 
-    res.json(rows);
+    res.json(result.rows);
   } catch (err) {
     console.error("Admin orders error:", err);
     res.status(500).json({ message: "Database error" });
   }
 });
 
-app.put("/api/admin/orders/fulfill/:id", (req, res) => {
+app.put("/api/admin/orders/fulfill/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    db.prepare(
-      "UPDATE orders SET status = 'Fulfilled' WHERE id = ?"
-    ).run(id);
+    await pool.query(
+      "UPDATE orders SET status = 'Fulfilled' WHERE id = $1",
+      [id]
+    );
 
     res.json({ message: "Order marked as fulfilled" });
   } catch (err) {
@@ -769,7 +800,7 @@ app.put("/api/admin/orders/fulfill/:id", (req, res) => {
   }
 });
 
-app.get("/api/admin/order/:id/items", (req, res) => {
+app.get("/api/admin/order/:id/items", async (req, res) => {
   const sql = `
     SELECT 
       order_items.*, 
@@ -778,12 +809,12 @@ app.get("/api/admin/order/:id/items", (req, res) => {
     FROM order_items
     JOIN products ON order_items.product_id = products.id
     JOIN product_variants ON order_items.variant_id = product_variants.id
-    WHERE order_items.order_id = ?
+    WHERE order_items.order_id = $1
   `;
 
   try {
-    const rows = db.prepare(sql).all(req.params.id);
-    res.json(rows);
+    const result = await pool.query(sql, [req.params.id]);
+    res.json(result.rows);
   } catch (err) {
     console.error("Admin order items error:", err);
     res.status(500).json({ message: "Database error" });
@@ -808,6 +839,13 @@ app.get("/", (req, res) => {
 
 const PORT = process.env.PORT || 10000;
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+initDb()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("Failed to initialize database:", err);
+    process.exit(1);
+  });
