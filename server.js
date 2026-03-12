@@ -197,29 +197,6 @@ async function getOrCreateCart(email) {
 // AUTH ROUTES
 // =========================
 
-app.post("/api/register", async (req, res) => {
-  const { firstName, lastName, email, password } = req.body;
-
-  if (!firstName || !lastName || !email || !password) {
-    return res.status(400).json({ message: "All fields are required." });
-  }
-
-  const hashedPassword = bcrypt.hashSync(password, 10);
-
-  try {
-    await pool.query(
-      `INSERT INTO users (firstName, lastName, email, password)
-       VALUES ($1, $2, $3, $4)`,
-      [firstName, lastName, email, hashedPassword]
-    );
-
-    res.json({ message: "Registration successful!" });
-  } catch (err) {
-    console.error("Registration error:", err);
-    res.status(400).json({ message: "Registration failed." });
-  }
-});
-
 app.post("/api/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -234,23 +211,26 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const match = await bcrypt.compare(password, user.password);
+    // Compare with password_hash (your real column)
+    const match = await bcrypt.compare(password, user.password_hash);
     if (!match) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
+    // Your DB uses full_name and role
     req.session.user = {
       id: user.id,
-      firstName: user.firstname,
+      fullName: user.full_name,
       email: user.email,
-      isAdmin: user.isadmin
+      role: user.role
     };
 
     res.json({
       message: "Login successful",
-      firstName: user.firstname,
-      isAdmin: user.isadmin
+      fullName: user.full_name,
+      role: user.role
     });
+
   } catch (err) {
     console.error("Login error:", err);
     res.status(500).json({ message: "Server error" });
@@ -261,16 +241,12 @@ app.get("/api/session", (req, res) => {
   if (req.session.user) {
     return res.json({
       loggedIn: true,
-      firstName: req.session.user.firstName,
+      fullName: req.session.user.fullName,
       email: req.session.user.email,
-      isAdmin: req.session.user.isAdmin
+      role: req.session.user.role
     });
   }
   res.json({ loggedIn: false });
-});
-
-app.post("/api/logout", (req, res) => {
-  req.session.destroy(() => res.json({ message: "Logged out" }));
 });
 
 
