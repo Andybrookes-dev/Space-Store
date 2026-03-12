@@ -5,7 +5,7 @@ async function checkAdminAccess() {
   const res = await fetch("/api/session");
   const session = await res.json();
 
-  if (!session.loggedIn || !session.isAdmin) {
+  if (!session.loggedIn || !["superadmin", "admin"].includes(session.role)) {
     window.location.href = "index.html";
   }
 }

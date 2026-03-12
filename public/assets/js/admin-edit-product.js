@@ -3,15 +3,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // -----------------------------
   // Admin Access Protection
   // -----------------------------
-  async function checkAdminAccess() {
-    const res = await fetch("/api/session");
-    const session = await res.json();
+ async function checkAdminAccess() {
+  const res = await fetch("/api/session");
+  const session = await res.json();
 
-    if (!session.loggedIn || !session.isAdmin) {
-      window.location.href = "index.html";
-    }
+  if (!session.loggedIn || !["superadmin", "admin"].includes(session.role)) {
+    window.location.href = "index.html";
   }
-  checkAdminAccess();
+}
+
+checkAdminAccess();
 
 
   // -----------------------------
