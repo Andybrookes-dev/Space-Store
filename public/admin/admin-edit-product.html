@@ -26,7 +26,7 @@ fetch("/api/session")
   .then(res => res.json())
   .then(data => {
     if (!data.loggedIn || !["superadmin", "admin"].includes(data.role)) {
-      window.location.href = "index.html";
+      window.location.href = "/index.html";
     } else {
       // Show the page once access is confirmed
       document.body.style.display = "block";

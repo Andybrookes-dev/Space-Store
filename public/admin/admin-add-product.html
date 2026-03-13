@@ -24,7 +24,7 @@ async function checkAdminAccess() {
 
     // Allow both superadmin and admin roles
     if (!session.loggedIn || !["superadmin", "admin"].includes(session.role)) {
-        window.location.href = "index.html";
+        window.location.href = "/index.html";
     }
 }
 checkAdminAccess();
