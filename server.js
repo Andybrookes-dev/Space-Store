@@ -55,6 +55,12 @@ function requireAdmin(req, res, next) {
 }
 
 
+app.post("/api/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie("connect.sid");
+    res.json({ message: "Logged out" });
+  });
+});
 
 
 
@@ -897,6 +903,9 @@ app.get("/api/admin/order/:id/items", requireAdmin, async (req, res) => {
     res.status(500).json({ message: "Database error" });
   }
 });
+
+
+
 
 
 // =========================

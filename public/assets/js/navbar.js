@@ -78,10 +78,17 @@ async function buildNavbar() {
 // -----------------------------
 // Logout Handler
 // -----------------------------
-document.addEventListener("click", (e) => {
+document.addEventListener("click", async (e) => {
   if (e.target.id === "logoutBtn") {
-    fetch("/api/logout", { method: "POST" })
-      .then(() => window.location.href = "/index.html");
+
+    // 1. Call logout API
+    await fetch("/api/logout", { method: "POST" });
+
+    // 2. Clear the REAL session cookie
+    document.cookie = "connect.sid=; Max-Age=0; path=/;";
+
+    // 3. Redirect to login
+    window.location.href = "/login.html";
   }
 });
 
