@@ -552,3 +552,6 @@ nav.tron-navbar .nav-link:hover::after {
     margin: 0;
     font-size: 0.95rem;
 }
+.checkout-section {
+    padding: 40px 0;
+}

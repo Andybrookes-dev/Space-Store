@@ -27,7 +27,7 @@
 
 <div class="tron-divider"></div>
 
-<section class="women-section">
+<section class="checkout-section">
     <h2 class="section-title">Checkout</h2>
 
     <div class="container" style="max-width: 900px;">
@@ -36,25 +36,37 @@
 
             <!-- Delivery Form -->
             <div class="col-md-6">
-                <div class="tron-card p-4">
+                  <div class="tron-card p-4">
                     <h4 class="text-light mb-3">Delivery Details</h4>
 
                     <form id="checkoutForm">
-                        <label class="form-label text-light">Full Name</label>
-                        <input type="text" id="fullName" class="form-control" required>
 
-                        <label class="form-label text-light mt-3">Address</label>
-                        <input type="text" id="address" class="form-control" required>
+    <label class="form-label text-light">Full Name</label>
+    <input type="text" id="fullName" class="form-control" 
+           required autocomplete="name">
 
-                        <label class="form-label text-light mt-3">City</label>
-                        <input type="text" id="city" class="form-control" required>
+    <label class="form-label text-light mt-3">Address Line 1</label>
+    <input type="text" id="address_line1" class="form-control" 
+           required autocomplete="address-line1">
 
-                        <label class="form-label text-light mt-3">Postcode</label>
-                        <input type="text" id="postcode" class="form-control" required>
+    <label class="form-label text-light mt-3">Address Line 2 (optional)</label>
+    <input type="text" id="address_line2" class="form-control" 
+           autocomplete="address-line2">
 
-                        <label class="form-label text-light mt-3">Country</label>
-                        <input type="text" id="country" class="form-control" value="United Kingdom" required>
-                    </form>
+    <label class="form-label text-light mt-3">City</label>
+    <input type="text" id="city" class="form-control" 
+           required autocomplete="address-level2">
+
+    <label class="form-label text-light mt-3">Postcode</label>
+    <input type="text" id="postcode" class="form-control" 
+           required autocomplete="postal-code">
+
+    <label class="form-label text-light mt-3">Country</label>
+    <input type="text" id="country" class="form-control" 
+           value="United Kingdom" required autocomplete="country">
+</form>
+
+
                 </div>
             </div>
 
