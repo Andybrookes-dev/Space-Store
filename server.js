@@ -18,7 +18,6 @@ const { Pool } = require("pg");
 const cors = require("cors");
 const path = require("path");
 const session = require("express-session");
-const fs = require("fs");
 const multer = require("multer");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const storage = new CloudinaryStorage({
@@ -57,21 +56,7 @@ function requireAdmin(req, res, next) {
 
 
 
-// =========================
-// MULTER (FILE UPLOADS)
-// =========================
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "assets/images/products/");
-  },
-  filename: (req, file, cb) => {
-    const unique = Date.now() + "-" + file.originalname;
-    cb(null, unique);
-  }
-});
-
-const upload = multer({ storage });
 
 
 // =========================
@@ -456,7 +441,12 @@ app.post("/api/admin/product", requireAdmin, upload.single("imageFile"), async (
   const { name, price, description, category_id } = req.body;
 
   // Cloudinary gives us a full URL in req.file.path
-  const imageUrl = req.file ? req.file.path : req.body.image;
+  if (!req.file) {
+  return res.status(400).json({ message: "Image upload required" });
+  }
+
+  const imageUrl = req.file.path;
+
 
   try {
     const rowResult = await pool.query(
@@ -496,15 +486,11 @@ app.delete("/api/admin/product/:id", requireAdmin, async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
-    const imagePath = row.image;
+    
 
     await pool.query("DELETE FROM products WHERE id = $1", [id]);
 
-    if (imagePath && fs.existsSync(imagePath)) {
-      fs.unlink(imagePath, (err) => {
-        if (err) console.log("Failed to delete image:", err);
-      });
-    }
+    
 
     res.json({ message: "Product deleted successfully" });
   } catch (err) {
