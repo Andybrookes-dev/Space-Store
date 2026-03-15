@@ -240,24 +240,30 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Compare with password_hash (your real column)
-    const match = await bcrypt.compare(password, user.password_hash);
+    // Compare with the correct column: password
+    const match = await bcrypt.compare(password, user.password);
     if (!match) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Your DB uses full_name and role
+    // Build full name from firstName + lastName
+    const fullName = `${user.firstname} ${user.lastname}`;
+
+    // Convert isAdmin (0/1) into a role string
+    const role = user.isadmin === 1 ? "admin" : "customer";
+
+    // Save session
     req.session.user = {
       id: user.id,
-      fullName: user.full_name,
+      fullName,
       email: user.email,
-      role: user.role
+      role
     };
 
     res.json({
       message: "Login successful",
-      fullName: user.full_name,
-      role: user.role
+      fullName,
+      role
     });
 
   } catch (err) {
@@ -265,6 +271,7 @@ app.post("/api/login", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 app.get("/api/session", (req, res) => {
   if (req.session.user) {
@@ -907,6 +914,41 @@ app.get("/api/admin/order/:id/items", requireAdmin, async (req, res) => {
   }
 });
 
+app.post("/api/register", async (req, res) => {
+  const { firstName, lastName, email, password } = req.body;
+
+  if (!firstName || !lastName || !email || !password) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
+
+  try {
+    // Check if user exists
+    const existing = await pool.query(
+      "SELECT * FROM users WHERE email = $1",
+      [email]
+    );
+
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ message: "Email already registered" });
+    }
+
+    // Hash password
+    const hashed = await bcrypt.hash(password, 10);
+
+    // Insert user
+    await pool.query(
+      `INSERT INTO users (firstName, lastName, email, password, isAdmin)
+       VALUES ($1, $2, $3, $4, 0)`,
+      [firstName, lastName, email, hashed]
+    );
+
+    res.json({ message: "Registration successful!" });
+
+  } catch (err) {
+    console.error("Register error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 
 
