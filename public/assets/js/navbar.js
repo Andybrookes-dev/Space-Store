@@ -14,9 +14,9 @@ async function buildNavbar() {
   // STATIC NAVIGATION LINKS
   // -----------------------------
   const staticLinks = [
-    { name: "Home", href: "index.html" },
-    { name: "Men", href: "men.html" },
-    { name: "Women", href: "women.html" }
+    { name: "Home", href: "/index.html" },
+    { name: "Men", href: "/men.html" },
+    { name: "Women", href: "/women.html" }
   ];
 
   staticLinks.forEach(link => {
@@ -37,13 +37,13 @@ async function buildNavbar() {
     // ⭐ Basket only when logged in
     navList.innerHTML += `
       <li class="nav-item">
-        <a class="nav-link tron-nav-link" href="basket.html">Basket</a>
+        <a class="nav-link tron-nav-link" href="/basket.html">Basket</a>
       </li>
     `;
 
     navList.innerHTML += `
       <li class="nav-item">
-        <a class="nav-link tron-nav-link" href="my-orders.html">My Orders</a>
+        <a class="nav-link tron-nav-link" href="/my-orders.html">My Orders</a>
       </li>
     `;
 
@@ -65,10 +65,10 @@ async function buildNavbar() {
   } else {
     navList.innerHTML += `
       <li class="nav-item">
-        <a class="nav-link tron-nav-link" href="login.html">Login</a>
+        <a class="nav-link tron-nav-link" href="/login.html">Login</a>
       </li>
       <li class="nav-item">
-        <a class="nav-link tron-nav-link" href="register.html">Register</a>
+        <a class="nav-link tron-nav-link" href="/register.html">Register</a>
       </li>
     `;
   }
@@ -81,7 +81,7 @@ async function buildNavbar() {
 document.addEventListener("click", (e) => {
   if (e.target.id === "logoutBtn") {
     fetch("/api/logout", { method: "POST" })
-      .then(() => window.location.href = "index.html");
+      .then(() => window.location.href = "/index.html");
   }
 });
 
