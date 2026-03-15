@@ -240,19 +240,18 @@ app.post("/api/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Compare with the correct column: password
     const match = await bcrypt.compare(password, user.password);
     if (!match) {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Build full name from firstName + lastName
-    const fullName = `${user.firstname} ${user.lastname}`;
+    // Handle both firstName/firstname and lastName/lastname safely
+    const first = user.firstname || user.firstName || "";
+    const last = user.lastname || user.lastName || "";
+    const fullName = `${first} ${last}`.trim();
 
-    // Convert isAdmin (0/1) into a role string
     const role = user.isadmin === 1 ? "admin" : "customer";
 
-    // Save session
     req.session.user = {
       id: user.id,
       fullName,
@@ -271,6 +270,7 @@ app.post("/api/login", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 
 app.get("/api/session", (req, res) => {
@@ -750,6 +750,11 @@ app.delete("/api/cart/clear", async (req, res) => {
 // =========================
 
 app.post("/api/checkout", async (req, res) => {
+  // Must be logged in
+  if (!req.session.user) {
+    return res.status(401).json({ message: "Not logged in" });
+  }
+
   const {
     email,
     fullName,
@@ -761,6 +766,8 @@ app.post("/api/checkout", async (req, res) => {
   } = req.body;
 
   if (!email) return res.status(400).json({ message: "Email required" });
+
+  const fullName = req.session.user.fullName; // Always safe now
 
   const client = await pool.connect();
 
