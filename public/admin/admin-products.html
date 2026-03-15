@@ -23,7 +23,7 @@ async function checkAdminAccess() {
     const session = await res.json();
 
     if (!session.loggedIn || !["superadmin", "admin"].includes(session.role)) {
-        window.location.href = "/index.html";
+        window.location.href = "/login.html";
     }
 }
 checkAdminAccess();
