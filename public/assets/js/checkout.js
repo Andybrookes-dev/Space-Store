@@ -68,40 +68,42 @@ document.addEventListener("DOMContentLoaded", () => {
     // -----------------------------
     async function placeOrder() {
 
-        const fullName = fullNameEl.value.trim();
-        const address = addressEl.value.trim();
-        const city = cityEl.value.trim();
-        const postcode = postcodeEl.value.trim();
-        const country = countryEl.value.trim();
+    const fullName = fullNameEl.value.trim();
+    const address = addressEl.value.trim();
+    const address2 = address2El.value.trim();
+    const city = cityEl.value.trim();
+    const postcode = postcodeEl.value.trim();
+    const country = countryEl.value.trim();
 
-        if (!fullName || !address || !city || !postcode || !country) {
-            alert("Please complete all delivery fields.");
-            return;
-        }
-
-        const res = await fetch("/api/checkout", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                email: userEmail,
-                fullName,
-                address_line1: address,
-                address_line2: "",
-                city,
-                postcode,
-                country
-            })
-        });
-
-        const data = await res.json();
-
-        if (res.ok) {
-            localStorage.setItem("gt_last_order", data.orderId);
-            window.location.href = "order-confirmation.html";
-        } else {
-            alert(data.message);
-        }
+    if (!fullName || !address || !city || !postcode || !country) {
+        alert("Please complete all delivery fields.");
+        return;
     }
+
+    const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            email: userEmail,
+            fullName,
+            address_line1: address,
+            address_line2: address2,
+            city,
+            postcode,
+            country
+        })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+        localStorage.setItem("gt_last_order", data.orderId);
+        window.location.href = "order-confirmation.html";
+    } else {
+        alert(data.message);
+    }
+}
+
 
     document.querySelector(".checkout-btn").addEventListener("click", placeOrder);
 
