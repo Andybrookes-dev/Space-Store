@@ -55,12 +55,7 @@ function requireAdmin(req, res, next) {
 }
 
 
-app.post("/api/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.clearCookie("connect.sid");
-    res.json({ message: "Logged out" });
-  });
-});
+
 
 
 
@@ -81,6 +76,14 @@ app.use(
     cookie: { secure: false }
   })
 );
+
+app.post("/api/logout", (req, res) => {
+  req.session.destroy(() => {
+    res.clearCookie("connect.sid");
+    res.json({ message: "Logged out" });
+  });
+});
+
 
 app.use((req, res, next) => {
   res.setHeader("Cache-Control", "no-store");
