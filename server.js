@@ -757,7 +757,6 @@ app.post("/api/checkout", async (req, res) => {
 
   const {
     email,
-    fullName,
     address_line1,
     address_line2,
     city,
