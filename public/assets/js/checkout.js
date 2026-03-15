@@ -12,7 +12,8 @@ document.addEventListener("DOMContentLoaded", () => {
     let userEmail = null;
 
     const totalEl = document.getElementById("orderTotal");
-    const addressEl = document.getElementById("address");
+    const addressEl = document.getElementById("address_line1");
+    const address2El = document.getElementById("address_line2");
     const cityEl = document.getElementById("city");
     const postcodeEl = document.getElementById("postcode");
     const countryEl = document.getElementById("country");
