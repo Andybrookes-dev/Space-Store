@@ -5,6 +5,14 @@ require("dotenv").config();
 // =========================
 
 const express = require("express");
+const cloudinary = require('cloudinary').v2;
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 const bcrypt = require("bcrypt");
 const { Pool } = require("pg");
 const cors = require("cors");
@@ -12,6 +20,16 @@ const path = require("path");
 const session = require("express-session");
 const fs = require("fs");
 const multer = require("multer");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'products',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp']
+  }
+});
+
+const upload = multer({ storage });
 
 const app = express();
 
@@ -437,14 +455,14 @@ app.get("/api/product/:id", async (req, res) => {
 app.post("/api/admin/product", requireAdmin, upload.single("imageFile"), async (req, res) => {
   const { name, price, description, category_id } = req.body;
 
-  const image = req.file
-    ? `assets/images/products/${req.file.filename}`
-    : req.body.image;
+  // Cloudinary gives us a full URL in req.file.path
+  const imageUrl = req.file ? req.file.path : req.body.image;
 
   try {
     const rowResult = await pool.query(
       "SELECT MAX(display_order) AS maxOrder FROM products"
     );
+
     const maxOrder = rowResult.rows[0].maxorder;
     const nextOrder = (maxOrder ?? 0) + 1;
 
@@ -452,7 +470,7 @@ app.post("/api/admin/product", requireAdmin, upload.single("imageFile"), async (
       `INSERT INTO products (name, price, description, image, category_id, display_order)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING id`,
-      [name, price, description, image, category_id, nextOrder]
+      [name, price, description, imageUrl, category_id, nextOrder]
     );
 
     res.json({ message: "Product added", id: insertResult.rows[0].id });
@@ -462,28 +480,6 @@ app.post("/api/admin/product", requireAdmin, upload.single("imageFile"), async (
   }
 });
 
-// Admin: update product
-app.put("/api/admin/product/:id", requireAdmin, upload.single("imageFile"), async (req, res) => {
-  const { name, price, description, category_id, active } = req.body;
-
-  const image = req.file
-    ? `assets/images/products/${req.file.filename}`
-    : req.body.image;
-
-  try {
-    await pool.query(
-      `UPDATE products
-       SET name = $1, price = $2, description = $3, image = $4, category_id = $5, active = $6
-       WHERE id = $7`,
-      [name, price, description, image, category_id, active, req.params.id]
-    );
-
-    res.json({ message: "Product updated" });
-  } catch (err) {
-    console.error("Update product error:", err);
-    res.status(500).json({ message: "Database error" });
-  }
-});
 
 // Admin: HARD DELETE
 app.delete("/api/admin/product/:id", requireAdmin, async (req, res) => {

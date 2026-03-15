@@ -59,11 +59,13 @@ document.getElementById("addProductForm").addEventListener("submit", async (e) =
   formData.append("active", 1);
 
   const file = document.getElementById("imageFile").files[0];
-  if (file) {
-    formData.append("imageFile", file);
-  } else {
-    formData.append("image", document.getElementById("image").value.trim());
-  }
+  if (!file) {
+  alert("Please upload an image.");
+  return;
+}
+
+formData.append("imageFile", file);
+
 
   const res = await fetch("/api/admin/product", {
     method: "POST",
