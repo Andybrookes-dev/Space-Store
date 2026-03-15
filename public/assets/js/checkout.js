@@ -1,11 +1,17 @@
 document.addEventListener("DOMContentLoaded", () => {
 
+    // Only run this script if checkout elements exist
+    const summaryContainer = document.getElementById("orderSummary");
+    const fullNameEl = document.getElementById("fullName");
+
+    if (!summaryContainer || !fullNameEl) {
+        // Not on checkout page → stop safely
+        return;
+    }
+
     let userEmail = null;
 
-    const summaryContainer = document.getElementById("orderSummary");
     const totalEl = document.getElementById("orderTotal");
-
-    const fullNameEl = document.getElementById("fullName");
     const addressEl = document.getElementById("address");
     const cityEl = document.getElementById("city");
     const postcodeEl = document.getElementById("postcode");

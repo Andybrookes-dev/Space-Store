@@ -8,7 +8,15 @@ async function buildNavbar() {
   const navList = document.querySelector(".navbar-nav");
   const greetingEl = document.getElementById("greeting");
 
+  // If navbar doesn't exist on this page, stop safely
+  if (!navList) return;
+
   navList.innerHTML = "";
+
+  // Safe greeting update
+  if (greetingEl && session.loggedIn) {
+    greetingEl.textContent = `Hello, ${session.fullName.split(" ")[0]}`;
+  }
 
   // -----------------------------
   // STATIC NAVIGATION LINKS
@@ -31,10 +39,7 @@ async function buildNavbar() {
   // USER-SPECIFIC LINKS
   // -----------------------------
   if (session.loggedIn) {
-    if (greetingEl) greetingEl.textContent = `Hello, ${session.fullName.split(" ")[0]}`;
 
-
-    // ⭐ Basket only when logged in
     navList.innerHTML += `
       <li class="nav-item">
         <a class="nav-link tron-nav-link" href="/basket.html">Basket</a>
@@ -47,8 +52,7 @@ async function buildNavbar() {
       </li>
     `;
 
-    if (["superadmin", "admin"].includes(session.role))
-   {
+    if (["superadmin", "admin"].includes(session.role)) {
       navList.innerHTML += `
         <li class="nav-item">
           <a class="nav-link tron-nav-link" href="/admin/admin.html">Admin Panel</a>
@@ -80,14 +84,8 @@ async function buildNavbar() {
 // -----------------------------
 document.addEventListener("click", async (e) => {
   if (e.target.id === "logoutBtn") {
-
-    // 1. Call logout API
     await fetch("/api/logout", { method: "POST" });
-
-    // 2. Clear the REAL session cookie
     document.cookie = "connect.sid=; Max-Age=0; path=/;";
-
-    // 3. Redirect to login
     window.location.href = "/login.html";
   }
 });
@@ -99,10 +97,9 @@ document.addEventListener("submit", (e) => {
   if (e.target.id === "searchForm") {
     e.preventDefault();
 
-    const category = document.getElementById("searchCategory").value;
-    const query = document.getElementById("searchInput").value.trim();
+    const category = document.getElementById("searchCategory")?.value || "";
+    const query = document.getElementById("searchInput")?.value.trim() || "";
 
-    // Redirect to search results page
     window.location.href = `search.html?category=${category}&q=${encodeURIComponent(query)}`;
   }
 });
