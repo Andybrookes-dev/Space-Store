@@ -3,16 +3,15 @@ document.addEventListener("DOMContentLoaded", () => {
   // -----------------------------
   // Admin Access Protection
   // -----------------------------
- async function checkAdminAccess() {
-  const res = await fetch("/api/session");
-  const session = await res.json();
+  async function checkAdminAccess() {
+    const res = await fetch("/api/session");
+    const session = await res.json();
 
-  if (!session.loggedIn || !["superadmin", "admin"].includes(session.role)) {
-    window.location.href = "index.html";
+    if (!session.loggedIn || !["superadmin", "admin"].includes(session.role)) {
+      window.location.href = "index.html";
+    }
   }
-}
-
-checkAdminAccess();
+  checkAdminAccess();
 
 
   // -----------------------------
@@ -67,6 +66,7 @@ checkAdminAccess();
     }
 
     await loadCategories(p.category_id);
+    await loadVariants(productId);
   }
 
   loadProduct();
@@ -119,4 +119,20 @@ checkAdminAccess();
     }
   });
 
-});
+
+
+  // ============================================================
+  // ⭐ VARIANT EDITOR (Sizes & Stock)
+  // ============================================================
+
+  async function loadVariants(productId) {
+    const res = await fetch(`/api/admin/product/${productId}/variants`);
+    const variants = await res.json();
+
+    const container = document.getElementById("variantList");
+    container.innerHTML = "";
+
+    variants.forEach(v => {
+      container.innerHTML += `
+        <div class="variant-row">
+          <strong>${v.size}</strong>

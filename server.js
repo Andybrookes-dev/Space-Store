@@ -342,6 +342,43 @@ app.get("/api/products", async (req, res) => {
   }
 });
 
+// Admin: update product
+app.put("/api/admin/product/:id", requireAdmin, upload.single("imageFile"), async (req, res) => {
+  const productId = req.params.id;
+  const { name, price, description, category_id, active } = req.body;
+
+  try {
+    let imageUrl;
+
+    // If a new image was uploaded, use Cloudinary URL
+    if (req.file) {
+      imageUrl = req.file.path;
+    } else {
+      // Otherwise keep the existing image
+      imageUrl = req.body.image;
+    }
+
+    await pool.query(
+      `UPDATE products
+       SET name = $1,
+           price = $2,
+           description = $3,
+           image = $4,
+           category_id = $5,
+           active = $6
+       WHERE id = $7`,
+      [name, price, description, imageUrl, category_id, active, productId]
+    );
+
+    res.json({ message: "Product updated successfully" });
+
+  } catch (err) {
+    console.error("Update product error:", err);
+    res.status(500).json({ message: "Failed to update product" });
+  }
+});
+
+
 // Public: single product + variants
 app.get("/api/products/:id", async (req, res) => {
   const productId = req.params.id;
@@ -367,6 +404,60 @@ app.get("/api/products/:id", async (req, res) => {
   } catch (err) {
     console.error("Single product error:", err);
     res.status(500).json({ error: "Database error" });
+  }
+});
+app.get("/api/admin/product/:id/variants", requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM product_variants WHERE product_id = $1 ORDER BY id ASC",
+      [req.params.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Admin get variants error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
+});
+
+app.put("/api/admin/variant/:id", requireAdmin, async (req, res) => {
+  const { stock } = req.body;
+
+  try {
+    await pool.query(
+      "UPDATE product_variants SET stock = $1 WHERE id = $2",
+      [stock, req.params.id]
+    );
+    res.json({ message: "Stock updated" });
+  } catch (err) {
+    console.error("Update variant error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
+});
+
+app.post("/api/admin/product/:id/variant", requireAdmin, async (req, res) => {
+  const { size, stock } = req.body;
+
+  try {
+    const result = await pool.query(
+      "INSERT INTO product_variants (product_id, size, stock) VALUES ($1, $2, $3) RETURNING id",
+      [req.params.id, size, stock ?? 0]
+    );
+    res.json({ message: "Variant added", id: result.rows[0].id });
+  } catch (err) {
+    console.error("Add variant error:", err);
+    res.status(500).json({ message: "Database error" });
+  }
+});
+
+app.delete("/api/admin/variant/:id", requireAdmin, async (req, res) => {
+  try {
+    await pool.query("DELETE FROM product_variants WHERE id = $1", [
+      req.params.id,
+    ]);
+    res.json({ message: "Variant deleted" });
+  } catch (err) {
+    console.error("Delete variant error:", err);
+    res.status(500).json({ message: "Database error" });
   }
 });
 
@@ -462,6 +553,18 @@ app.post("/api/admin/product", requireAdmin, upload.single("imageFile"), async (
        RETURNING id`,
       [name, price, description, imageUrl, category_id, nextOrder]
     );
+    const productId = insertResult.rows[0].id;
+
+// Insert default sizes
+const sizes = ["S", "M", "L", "XL"];
+
+for (const size of sizes) {
+  await pool.query(
+    "INSERT INTO product_variants (product_id, size, stock) VALUES ($1, $2, $3)",
+    [productId, size, 10] // default stock
+  );
+}
+
 
     res.json({ message: "Product added", id: insertResult.rows[0].id });
   } catch (err) {
