@@ -555,3 +555,69 @@ nav.tron-navbar .nav-link:hover::after {
 .checkout-section {
     padding: 40px 0;
 }
+
+/* =========================================================
+   TRON BUTTONS
+   ========================================================= */
+
+.tron-btn {
+    background: #00eaff;
+    color: #000;
+    border: 2px solid #00eaff;
+    padding: 10px 22px;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 600;
+    letter-spacing: 1px;
+    border-radius: 6px;
+    text-transform: uppercase;
+    box-shadow: 0 0 12px #00eaffaa;
+    transition: 0.25s ease;
+}
+
+.tron-btn:hover {
+    background: #00cce0;
+    border-color: #00cce0;
+    box-shadow: 0 0 20px #00eaff;
+    transform: translateY(-2px);
+    color: #000;
+}
+/* Auth pages */
+.auth-body {
+    background: #0a0f1f;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.auth-container {
+    width: 100%;
+    max-width: 420px;
+    background: rgba(0, 234, 255, 0.05);
+    border: 2px solid #00eaff33;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 0 20px #00eaff33;
+    text-align: center;
+}
+
+.auth-input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    background: #0a0f1f;
+    border: 2px solid #00eaff55;
+    color: #b8eaff;
+    border-radius: 6px;
+}
+
+.auth-input:focus {
+    outline: none;
+    border-color: #00eaff;
+    box-shadow: 0 0 10px #00eaff;
+}
+
+.auth-link a {
+    color: #00eaff;
+    text-shadow: 0 0 6px #00eaff;
+}
