@@ -446,12 +446,21 @@ app.put("/api/admin/product/:id", requireAdmin, upload.single("imageFile"), asyn
   try {
     let imageUrl;
 
-    // If a new image was uploaded, use Cloudinary URL
+    // 1. If a new image was uploaded, use Cloudinary URL
     if (req.file) {
       imageUrl = req.file.path;
     } else {
-      // Otherwise keep the existing image
-      imageUrl = req.body.image;
+      // 2. No new file — check if the form sent an image value
+      if (req.body.image && req.body.image.trim() !== "") {
+        imageUrl = req.body.image;
+      } else {
+        // 3. Form sent empty image — KEEP existing image from DB
+        const existing = await pool.query(
+          "SELECT image FROM products WHERE id = $1",
+          [productId]
+        );
+        imageUrl = existing.rows[0].image;
+      }
     }
 
     await pool.query(
