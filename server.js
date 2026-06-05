@@ -181,6 +181,16 @@ async function initDb() {
     )
   `);
 
+  // PASSWORD RESET TOKENS
+await pool.query(`
+  CREATE TABLE IF NOT EXISTS password_resets (
+    id SERIAL PRIMARY KEY,
+    email TEXT NOT NULL,
+    token TEXT NOT NULL,
+    expires_at TIMESTAMP NOT NULL
+  )
+`);
+
   // ORDER ITEMS
   await pool.query(`
     CREATE TABLE IF NOT EXISTS order_items (
@@ -285,6 +295,76 @@ app.get("/api/session", (req, res) => {
   res.json({ loggedIn: false });
 });
 
+const sgMail = require("@sendgrid/mail");
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+app.post("/api/auth/request-reset", async (req, res) => {
+  const { email } = req.body;
+
+  const userResult = await pool.query(
+    "SELECT * FROM users WHERE email = $1",
+    [email]
+  );
+
+  // Always respond the same to avoid leaking user existence
+  const genericResponse = { message: "If that email exists, a reset link has been sent." };
+
+  if (userResult.rows.length === 0) {
+    return res.json(genericResponse);
+  }
+
+  const token = require("crypto").randomBytes(32).toString("hex");
+  const expires = new Date(Date.now() + 1000 * 60 * 15); // 15 minutes
+
+  await pool.query(
+    `INSERT INTO password_resets (email, token, expires_at)
+     VALUES ($1, $2, $3)`,
+    [email, token, expires]
+  );
+
+  const resetUrl = `https://galacticthreads-e560b1182318.herokuapp.com/reset-password.html?token=${token}`;
+
+  const msg = {
+    to: email,
+    from: process.env.SENDGRID_FROM,
+    subject: "Reset Your Galactic Threads Password",
+    html: `
+      <h2 style="color:#00eaff;">Password Reset</h2>
+      <p>Click below to reset your password:</p>
+      <a href="${resetUrl}" style="padding:10px 20px;background:#00eaff;color:black;text-decoration:none;border-radius:4px;">Reset Password</a>
+    `
+  };
+
+  await sgMail.send(msg);
+
+  res.json(genericResponse);
+});
+
+app.post("/api/auth/reset-password", async (req, res) => {
+  const { token, password } = req.body;
+
+  const result = await pool.query(
+    "SELECT * FROM password_resets WHERE token = $1",
+    [token]
+  );
+
+  const entry = result.rows[0];
+
+  if (!entry || new Date(entry.expires_at) < new Date()) {
+    return res.status(400).json({ message: "Invalid or expired token" });
+  }
+
+  const hashed = await bcrypt.hash(password, 10);
+
+  await pool.query(
+    "UPDATE users SET password = $1 WHERE email = $2",
+    [hashed, entry.email]
+  );
+
+  await pool.query("DELETE FROM password_resets WHERE token = $1", [token]);
+
+  res.json({ message: "Password updated successfully" });
+});
 
 // =========================
 // CATEGORY ROUTES
