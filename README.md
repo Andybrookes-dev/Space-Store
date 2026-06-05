@@ -1,4 +1,5 @@
 # Galactic Threads — Full Project Documentation
+ 
 
 Galactic Threads is a futuristic, Tron‑inspired e‑commerce platform featuring a glowing neon UI, dynamic product loading, a full shopping experience, and a complete admin panel for managing products, categories, and orders.
 
@@ -10,14 +11,25 @@ This documentation covers the entire system: architecture, routes, database sche
 - HTML5  
 - CSS3 (Tron‑inspired theme)  
 - Vanilla JavaScript  
+- Responsive layout
+- Dynamic product loading
+- Session‑aware UI
 
 ### Backend
 - Node.js  
 - Express.js  
-- SQLite3  
-- Multer (file uploads)  
+- PostgreSQL  
+- Cloudinary (image hosting)
+- Multer + CloudinaryStorage (file uploads)  
 - express‑session (authentication)  
 - bcrypt (password hashing)  
+- SendGrid (password reset emails)
+
+
+### Hosting
+- Heroku (server + PostgreSQL)
+- Cloudinary (Images)
+
 
 ### Database
 - SQLite (`db.sqlite`)  
@@ -29,10 +41,11 @@ This documentation covers the entire system: architecture, routes, database sche
 ### Storefront
 - Men’s and Women’s collections  
 - Dynamic product loading  
-- Product descriptions, images, prices  
+- Product descriptions, images, prices, sizes
 - Add to basket  
-- Update quantities  
+- Update cart quantities  
 - Checkout  
+- Order Confirmation
 - Order history  
 
 ### User Accounts
@@ -40,12 +53,15 @@ This documentation covers the entire system: architecture, routes, database sche
 - Login  
 - Session‑based authentication  
 - View past orders  
+- Password Reset via email (SendGrid)
 
 ### Admin Panel
 - View all products (active + inactive)  
 - Add new products  
 - Edit existing products  
 - Upload/replace images  
+- Manage categories
+- Reorder products (drag & drop)
 - Delete products (hard delete)  
 - Manage categories  
 - View and fulfill orders  
@@ -53,26 +69,31 @@ This documentation covers the entire system: architecture, routes, database sche
 
 ## 4. Project Structure
 
-/assets
-/css
-/js
-products.js
-admin-products.js
-admin-edit-product.js
-admin-add-product.js
-/images
-/products
-/db.sqlite
-/init-db.js
-/server.js
-/index.html
-/men.html
-/women.html
-/basket.html
-/my-orders.html
-/admin-products.html
-/admin-edit-product.html
-/admin-add-product.html
+
+/public
+  /assets
+    /css
+    /js
+    /images
+  index.html
+  men.html
+  women.html
+  login.html
+  register.html
+  forgot-password.html
+  reset-password.html
+  my-orders.html
+  checkout.html
+
+/server
+  server.js
+  /templates
+    resetPasswordEmail.js
+
+.env
+package.json
+Procfile
+
 
 ## 5. Database Schema
 
@@ -134,6 +155,15 @@ admin-add-product.js
 | product_id | INTEGER |
 | quantity   | INTEGER |
 | price      | REAL    |
+
+### Password Reset Tokens
+
+|Column	     | Type      |
+|------------|-----------|
+|id	         | SERIAL    |
+|email	     | TEXT      |
+|token	     | TEXT      |
+|expires_at	 | TIMESTAMP |
 
 ## 6. Backend Route Reference
 
