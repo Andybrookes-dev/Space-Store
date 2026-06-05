@@ -15,6 +15,8 @@ cloudinary.config({
 
 const bcrypt = require("bcrypt");
 const { Pool } = require("pg");
+const resetPasswordEmail = require("./server/templates/resetPasswordEmail");
+
 const cors = require("cors");
 const path = require("path");
 const session = require("express-session");
@@ -328,11 +330,9 @@ app.post("/api/auth/request-reset", async (req, res) => {
     to: email,
     from: process.env.SENDGRID_FROM,
     subject: "Reset Your Galactic Threads Password",
-    html: `
-      <h2 style="color:#00eaff;">Password Reset</h2>
-      <p>Click below to reset your password:</p>
-      <a href="${resetUrl}" style="padding:10px 20px;background:#00eaff;color:black;text-decoration:none;border-radius:4px;">Reset Password</a>
-    `
+    html: resetPasswordEmail(resetUrl)
+
+      
   };
 
   await sgMail.send(msg);
