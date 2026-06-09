@@ -60,7 +60,9 @@ function renderProducts(products) {
         <img src="${p.image}" class="product-image">
         <h3 class="product-name">${p.name}</h3>
         <p class="product-price">£${p.price}</p>
-        <a href="product.html?id=${p.id}" class="tron-btn mt-2">View Product</a>
+        <a href="${p.category_id === 1 ? 'men.html' : 'women.html'}?id=${p.id}" 
+   class="tron-btn mt-2">View Product</a>
+
       </div>
     `;
   });
