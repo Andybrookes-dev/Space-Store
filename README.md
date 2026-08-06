@@ -1,5 +1,19 @@
 # Galactic Threads — Full Project Documentation
  
+# Live Site https://galacticthreads-e560b1182318.herokuapp.com/index.html
+
+
+## 📱 Apple Devices Mockup
+
+<p align="center">
+  <img 
+    src="public/assets/images/apple-responsive-devices-mockup-galactic-threads.png"
+    alt="Apple responsive devices mockup"
+    width="900"
+  />
+</p>
+
+
 
 Galactic Threads is a futuristic, Tron‑inspired e‑commerce platform featuring a glowing neon UI, dynamic product loading, a full shopping experience, and a complete admin panel for managing products, categories, and orders.
 
